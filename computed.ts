@@ -2,8 +2,8 @@ import Dependency from "./dependency";
 import Dependent from "./dependent";
 import Tracker from "./tracker";
 
-export declare type TrackValue<T> = (dependency: Tracker<T>) => T;
-export declare type ComputeFunc<T1, T2> = (value: TrackValue<T1>) => T2;
+declare type TrackValue = <T>(dependency: Dependency<T>) => T;
+export declare type ComputeFunc<T> = (value: TrackValue) => T;
 
 enum ComputedState {
     Invalid,
@@ -15,14 +15,14 @@ enum ComputedState {
 class CircularDependencyError extends Error { }
 
 export default class Computed<T> extends Tracker<T> implements Dependent, Dependency<T> {
-    getter: ComputeFunc<any, T>;
+    getter: ComputeFunc<T>;
     private state = ComputedState.Invalid;
     private dependencies = new Map<Dependency<any>, boolean>();
     private computePromise?: T;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
 
-    constructor(getter: ComputeFunc<any, T>) {
+    constructor(getter: ComputeFunc<T>) {
         super();
         this.getter = getter;
         this.prepareComputePromise();
