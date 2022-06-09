@@ -1,6 +1,7 @@
+import Dependency from "./dependency";
 import Tracker from "./tracker";
 
-export default class Ref<T> extends Tracker {
+export default class Ref<T> extends Tracker<T> implements Dependency<T> {
 
     constructor(_value: T) {
         super();
@@ -16,6 +17,6 @@ export default class Ref<T> extends Tracker {
     }
 
     public get value(): T {
-        return super.value;
+        return super.value!;
     }
 }

@@ -1,3 +1,5 @@
+import Dependency from "./dependency";
+import Dependent from "./dependent";
 import Tracker from "./tracker";
 
 enum WatchState {
@@ -5,12 +7,15 @@ enum WatchState {
     Valid
 };
 
-export default class Watch extends Tracker {
-    private onChange: Function;
-    private dependency: Tracker;
+type onChangeFunc<T> = (newValue: T, oldValue?: T) => void;
+
+export default class Watch<T> extends Tracker<T> implements Dependent {
+
+    private onChange: onChangeFunc<T>;
+    private dependency: Dependency<T>;
     private state = WatchState.Valid;
 
-    constructor(dependency: Tracker, onChange: Function, immediate: boolean = true) {
+    constructor(dependency: Dependency<T>, onChange: onChangeFunc<T>, immediate: boolean = true) {
         super();
         this.onChange = onChange;
         this.dependency = dependency;

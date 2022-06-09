@@ -252,7 +252,7 @@ describe('async reactivity', function () {
     describe('watcher', function () {
         it('sync', function () {
             const a = new ref(5);
-            new watch(a, (newValue: number, oldValue: number) => {
+            new watch(a, (newValue: number, oldValue?: number) => {
                 assert.strictEqual(oldValue, 5);
                 assert.strictEqual(newValue, 6);
             }, false);
@@ -264,7 +264,7 @@ describe('async reactivity', function () {
                 await new Promise(resolve => setTimeout(resolve));
                 return 10;
             });
-            const result = await new Promise<void>(resolve => new watch(a, resolve));
+            const result = await new Promise<number>(resolve => new watch(a, resolve));
             assert.strictEqual(result, 10);
         });
 

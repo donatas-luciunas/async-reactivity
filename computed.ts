@@ -1,6 +1,9 @@
+import Dependency from "./dependency";
+import Dependent from "./dependent";
 import Tracker from "./tracker";
 
-export declare type TrackValue = (dependency: Tracker) => any;
+export declare type TrackValue<T> = (dependency: Tracker<T>) => T;
+export declare type ComputeFunc<T1, T2> = (value: TrackValue<T1>) => T2;
 
 enum ComputedState {
     Invalid,
@@ -11,15 +14,15 @@ enum ComputedState {
 
 class CircularDependencyError extends Error { }
 
-export default class Computed<T> extends Tracker {
-    getter: (value: TrackValue) => any;
+export default class Computed<T> extends Tracker<T> implements Dependent, Dependency<T> {
+    getter: ComputeFunc<any, T>;
     private state = ComputedState.Invalid;
-    private dependencies = new Map();
-    private computePromise: Promise<T> | undefined;
-    private computePromiseActions: { resolve: Function, reject: Function } | undefined;
-    private lastComputeAttemptPromise: Promise<void> | undefined;
+    private dependencies = new Map<Dependency<any>, boolean>();
+    private computePromise?: T;
+    private computePromiseActions?: { resolve: Function, reject: Function };
+    private lastComputeAttemptPromise?: Promise<void>;
 
-    constructor(getter: (value: TrackValue) => T) {
+    constructor(getter: ComputeFunc<any, T>) {
         super();
         this.getter = getter;
         this.prepareComputePromise();
@@ -31,7 +34,7 @@ export default class Computed<T> extends Tracker {
                 resolve,
                 reject
             };
-        });
+        }) as unknown as T;
     }
 
     public get value(): T {
@@ -39,7 +42,7 @@ export default class Computed<T> extends Tracker {
             return this.compute();
         }
 
-        return this._value;
+        return this._value!;
     }
 
     private compute() {
@@ -53,7 +56,7 @@ export default class Computed<T> extends Tracker {
             })) {
                 this.finalizeComputing();
                 this.validateDependents();
-                return this._value;
+                return this._value!;
             }
         }
 
@@ -67,14 +70,14 @@ export default class Computed<T> extends Tracker {
                 .then(result => this.handlePromiseThen(computeAttemptPromise, result))
                 .catch(error => this.handlePromiseCatch(computeAttemptPromise, error)) as Promise<void>;
             this.lastComputeAttemptPromise = computeAttemptPromise;
-            this._value = this.computePromise;
+            this._value = this.computePromise!;
         } else {
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
             if (lastValue === this._value) {
                 this.validateDependents();
             }
         }
-        return this._value;
+        return this._value!;
     }
 
     private clearDependencies() {
@@ -98,11 +101,11 @@ export default class Computed<T> extends Tracker {
         }
     }
 
-    private innerTrackDependency(this: Computed<T>, dependency: Tracker) {
-        if (this.dependents.has(dependency)) {
+    private innerTrackDependency(this: Computed<T>, dependency: Dependency<any>) {
+        if (this.dependents.has(dependency as any)) {
             throw new CircularDependencyError();
         }
-        this.dependencies.set(dependency, 0);
+        this.dependencies.set(dependency, true);
         dependency.addDependent(this);
         return dependency.value;
     }
@@ -124,7 +127,7 @@ export default class Computed<T> extends Tracker {
         }
     }
 
-    public validate(dependency: Tracker) {
+    public validate(dependency: Dependency<any>) {
         this.dependencies.set(dependency, false);
     }
 
