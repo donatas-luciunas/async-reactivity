@@ -1,15 +1,15 @@
-import { computed, ref, watch } from './';
+import { Computed, Ref, Watch } from './';
 import * as assert from 'assert';
 
 describe('async reactivity', function () {
     describe('ref', function () {
         it('getter', function () {
-            const a = new ref(5);
+            const a = new Ref(5);
             assert.strictEqual(a.value, 5);
         });
 
         it('setter', function () {
-            const a = new ref(5);
+            const a = new Ref(5);
             a.value = 4;
             assert.strictEqual(a.value, 4);
         });
@@ -18,7 +18,7 @@ describe('async reactivity', function () {
     describe('computed', function () {
         it('lazy compute', function () {
             let gate = false;
-            const a = new computed(() => {
+            const a = new Computed(() => {
                 gate = true;
                 return 5;
             });
@@ -30,7 +30,7 @@ describe('async reactivity', function () {
 
         it('cache', function () {
             let gate = false;
-            const a = new computed(() => {
+            const a = new Computed(() => {
                 gate = true;
                 return 5;
             });
@@ -43,8 +43,8 @@ describe('async reactivity', function () {
         });
 
         it('invalidate dependents', function () {
-            const a = new ref(5);
-            const b = new computed((value) => {
+            const a = new Ref(5);
+            const b = new Computed((value) => {
                 return value(a) + 4;
             });
             assert.strictEqual(b.value, 9);
@@ -53,10 +53,10 @@ describe('async reactivity', function () {
         });
 
         it('dependents up-to-date', function () {
-            const a = new ref(5);
-            const b = new ref(10);
+            const a = new Ref(5);
+            const b = new Ref(10);
             let gate;
-            const c = new computed((value) => {
+            const c = new Computed((value) => {
                 gate = true;
                 return value(a) < 10 ? value(b) : 0;
             });
@@ -71,11 +71,11 @@ describe('async reactivity', function () {
 
         it('detect circular dependency', function () {
             // @ts-expect-error
-            const a = new computed((value) => {
+            const a = new Computed((value) => {
                 return value(b);
             });
             // @ts-expect-error
-            const b = new computed((value) => {
+            const b = new Computed((value) => {
                 return value(a);
             });
             assert.throws(() => a.value);
@@ -87,7 +87,7 @@ describe('async reactivity', function () {
         });
 
         it('throw error', function () {
-            const a = new computed(() => {
+            const a = new Computed(() => {
                 throw new Error();
             });
             assert.throws(() => a.value);
@@ -95,8 +95,8 @@ describe('async reactivity', function () {
 
         it('ignore same ref value', function () {
             let gate = 0;
-            const a = new ref(5);
-            const b = new computed((value) => {
+            const a = new Ref(5);
+            const b = new Computed((value) => {
                 gate++;
                 return value(a);
             });
@@ -110,11 +110,11 @@ describe('async reactivity', function () {
 
         it('ignore same computed value', function () {
             let gate = 0;
-            const a = new ref(5);
-            const b = new computed((value) => {
+            const a = new Ref(5);
+            const b = new Computed((value) => {
                 return value(a) % 2;
             });
-            const c = new computed((value) => {
+            const c = new Computed((value) => {
                 gate++;
                 return value(b) + 5;
             });
@@ -129,7 +129,7 @@ describe('async reactivity', function () {
 
     describe('async computed', function () {
         it('getter', async function () {
-            const a = new computed(async () => {
+            const a = new Computed(async () => {
                 await new Promise(resolve => setTimeout(resolve));
                 return 5;
             });
@@ -137,8 +137,8 @@ describe('async reactivity', function () {
         });
 
         it('tracks async dependencies', async function () {
-            const a = new ref(5);
-            const b = new computed(async (value) => {
+            const a = new Ref(5);
+            const b = new Computed(async (value) => {
                 await new Promise(resolve => setTimeout(resolve));
                 return value(a) + 5;
             });
@@ -148,7 +148,7 @@ describe('async reactivity', function () {
         });
 
         it('get value while computing', async function () {
-            const a = new computed(async () => {
+            const a = new Computed(async () => {
                 await new Promise(resolve => setTimeout(resolve));
                 return 5;
             });
@@ -159,12 +159,12 @@ describe('async reactivity', function () {
 
         it('detect circular dependency', async function () {
             // @ts-expect-error
-            const a = new computed(async (value) => {
+            const a = new Computed(async (value) => {
                 await new Promise(resolve => setTimeout(resolve));
                 return value(b);
             });
             // @ts-expect-error
-            const b = new computed(async (value) => {
+            const b = new Computed(async (value) => {
                 await new Promise(resolve => setTimeout(resolve));
                 return value(a);
             });
@@ -174,8 +174,8 @@ describe('async reactivity', function () {
 
         it('old dependency changed while computing', async function () {
             let gate = 0;
-            const a = new ref(5);
-            const b = new computed(async (value) => {
+            const a = new Ref(5);
+            const b = new Computed(async (value) => {
                 gate++;
                 await new Promise(resolve => setTimeout(resolve));
                 return value(a) + 2;
@@ -190,9 +190,9 @@ describe('async reactivity', function () {
 
         it('new dependency changed while computing', async function () {
             let gate = 0;
-            const a = new ref(5);
-            const b = new ref(10);
-            const c = new computed(async (value) => {
+            const a = new Ref(5);
+            const b = new Ref(10);
+            const c = new Computed(async (value) => {
                 gate++;
                 await new Promise(resolve => setTimeout(resolve, 50));
                 let sum = value(a);
@@ -210,9 +210,9 @@ describe('async reactivity', function () {
         });
 
         it('fallback to primitive while computing', async function () {
-            const a = new ref(5);
-            const b = new ref(10);
-            const c = new computed(async (value) => {
+            const a = new Ref(5);
+            const b = new Ref(10);
+            const c = new Computed(async (value) => {
                 if (value(a) < 10) {
                     await new Promise(resolve => setTimeout(resolve, 50));
                     return value(b) + 5;
@@ -226,7 +226,7 @@ describe('async reactivity', function () {
         });
 
         it('throw error', async function () {
-            const a = new computed(async () => {
+            const a = new Computed(async () => {
                 await new Promise(resolve => setTimeout(resolve));
                 throw new Error();
             });
@@ -234,9 +234,9 @@ describe('async reactivity', function () {
         });
 
         it('dispose computed', async function () {
-            const a = new ref(5);
+            const a = new Ref(5);
             let gate = 0;
-            const b = new computed(value => {
+            const b = new Computed(value => {
                 gate++;
                 return value(a) + 2;
             });
@@ -251,8 +251,8 @@ describe('async reactivity', function () {
 
     describe('watcher', function () {
         it('sync', function () {
-            const a = new ref(5);
-            new watch(a, (newValue: number, oldValue?: number) => {
+            const a = new Ref(5);
+            new Watch(a, (newValue: number, oldValue?: number) => {
                 assert.strictEqual(oldValue, 5);
                 assert.strictEqual(newValue, 6);
             }, false);
@@ -260,21 +260,21 @@ describe('async reactivity', function () {
         });
 
         it('async', async function () {
-            const a = new computed(async () => {
+            const a = new Computed(async () => {
                 await new Promise(resolve => setTimeout(resolve));
                 return 10;
             });
-            const result = await new Promise<number>(resolve => new watch(a, resolve));
+            const result = await new Promise<number>(resolve => new Watch(a, resolve));
             assert.strictEqual(result, 10);
         });
 
         it('sync cancel', async function () {
-            const a = new ref(5);
-            const b = new computed((value) => {
+            const a = new Ref(5);
+            const b = new Computed((value) => {
                 return value(a) % 2;
             });
             let gate = 0;
-            new watch(b, () => {
+            new Watch(b, () => {
                 gate++;
             }, false);
             a.value = 6;
@@ -286,13 +286,13 @@ describe('async reactivity', function () {
         });
 
         it('async sync cancel', async function () {
-            const a = new ref(5);
-            const b = new computed(async (value) => {
+            const a = new Ref(5);
+            const b = new Computed(async (value) => {
                 new Promise(resolve => setTimeout(resolve));
                 return value(a) % 2;
             });
             let gate = 0;
-            new watch(b, () => {
+            new Watch(b, () => {
                 gate++;
             }, false);
             await new Promise(resolve => setTimeout(resolve, 10));
