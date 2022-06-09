@@ -81,6 +81,11 @@ describe('async reactivity', function () {
             assert.throws(() => a.value);
         });
 
+        xit('detect circular deeper dependency', function () {
+            // do not support for better performance
+            assert.fail('not implemented');
+        });
+
         it('throw error', function () {
             const a = new computed(() => {
                 throw new Error();
