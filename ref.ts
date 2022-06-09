@@ -1,13 +1,13 @@
 import Tracker from "./tracker";
 
-export default class Ref extends Tracker {
+export default class Ref<T> extends Tracker {
 
-    constructor(_value: any) {
+    constructor(_value: T) {
         super();
         this._value = _value;
     }
 
-    public set value(_value: any) {
+    public set value(_value: T) {
         const lastValue = this._value;
         this._value = _value;
         if (lastValue !== _value) {
@@ -15,7 +15,7 @@ export default class Ref extends Tracker {
         }
     }
 
-    public get value() {
+    public get value(): T {
         return super.value;
     }
 }
