@@ -1,6 +1,6 @@
 import Tracker from "./tracker";
 
-declare type TrackValue = (dependency: Tracker) => any;
+export declare type TrackValue = (dependency: Tracker) => any;
 
 enum ComputedState {
     Invalid,
