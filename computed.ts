@@ -4,6 +4,7 @@ import Tracker from "./tracker";
 
 declare type TrackValue = <T>(dependency: Dependency<T>) => T;
 export declare type ComputeFunc<T> = (value: TrackValue) => T;
+export declare type ComputeFuncScoped<T1, T2> = (this: T1, value: TrackValue) => T2;
 
 enum ComputedState {
     Invalid,
