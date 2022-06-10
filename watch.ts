@@ -40,4 +40,8 @@ export default class Watch<T> extends Tracker<T> implements Dependent {
     public validate() {
         this.state = WatchState.Valid;
     }
+
+    public dispose() {
+        this.dependency.removeDependent(this);
+    }
 }
