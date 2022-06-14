@@ -1,4 +1,4 @@
-import { Computed, Ref, Watch } from './';
+import { Computed, Ref, Watcher } from './';
 import * as assert from 'assert';
 
 describe('async reactivity', function () {
@@ -252,7 +252,7 @@ describe('async reactivity', function () {
     describe('watcher', function () {
         it('sync', function () {
             const a = new Ref(5);
-            new Watch(a, (newValue: number, oldValue?: number) => {
+            new Watcher(a, (newValue: number, oldValue?: number) => {
                 assert.strictEqual(oldValue, 5);
                 assert.strictEqual(newValue, 6);
             }, false);
@@ -264,7 +264,7 @@ describe('async reactivity', function () {
                 await new Promise(resolve => setTimeout(resolve));
                 return 10;
             });
-            const result = await new Promise<number>(resolve => new Watch(a, resolve));
+            const result = await new Promise<number>(resolve => new Watcher(a, resolve));
             assert.strictEqual(result, 10);
         });
 
@@ -274,7 +274,7 @@ describe('async reactivity', function () {
                 return value(a) % 2;
             });
             let gate = 0;
-            new Watch(b, () => {
+            new Watcher(b, () => {
                 gate++;
             }, false);
             a.value = 6;
@@ -292,7 +292,7 @@ describe('async reactivity', function () {
                 return value(a) % 2;
             });
             let gate = 0;
-            new Watch(b, () => {
+            new Watcher(b, () => {
                 gate++;
             }, false);
             await new Promise(resolve => setTimeout(resolve, 10));

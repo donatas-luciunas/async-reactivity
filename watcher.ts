@@ -9,7 +9,7 @@ enum WatchState {
 
 type onChangeFunc<T> = (newValue: T, oldValue?: T) => void;
 
-export default class Watch<T> extends Tracker<T> implements Dependent {
+export default class Watcher<T> extends Tracker<T> implements Dependent {
 
     private onChange: onChangeFunc<T>;
     private dependency: Dependency<T>;

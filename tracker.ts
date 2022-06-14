@@ -1,7 +1,7 @@
 import Computed from "./computed";
-import Watch from "./watch";
+import Watcher from "./watcher";
 
-type Dependent = Computed<any> | Watch<any>;
+type Dependent = Computed<any> | Watcher<any>;
 
 export default class Tracker<T> {
     protected dependents = new Set<Dependent>();
