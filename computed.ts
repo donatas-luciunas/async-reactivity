@@ -122,7 +122,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     public invalidate() {
         if (this.state === ComputedState.Computing) {
             setImmediate(this.compute.bind(this));
-        } else {
+        } if (this.state !== ComputedState.Uncertain) {
             this.state = ComputedState.Uncertain;
             super.invalidate();
         }
