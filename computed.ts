@@ -140,5 +140,9 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
 
     public dispose() {
         this.clearDependencies();
+        this.state = ComputedState.Invalid;
+        this._value = undefined;
+        this.lastComputeAttemptPromise = undefined;
+        this.prepareComputePromise();
     }
 }
