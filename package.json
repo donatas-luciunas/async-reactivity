@@ -1,9 +1,9 @@
 {
   "name": "async-reactivity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "lib/index.ts",
-  "types": "lib/index.d.ts",
+  "types": "types/index.d.ts",
   "files": [
     "lib",
     "src",
