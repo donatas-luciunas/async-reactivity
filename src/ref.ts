@@ -1,5 +1,5 @@
-import Dependency from "./dependency";
-import Tracker from "./tracker";
+import Dependency from "./dependency.js";
+import Tracker from "./tracker.js";
 
 export default class Ref<T> extends Tracker<T> implements Dependency<T> {
 

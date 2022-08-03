@@ -1,6 +1,6 @@
 {
   "name": "async-reactivity",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -9,9 +9,10 @@
     "src",
     "types"
   ],
+  "type": "module",
   "scripts": {
     "dev": "npx tsc -w -p src",
-    "test-dev": "mocha --watch \"./{,!(node_modules)/**/}*.test.js\""
+    "test": "mocha \"./{,!(node_modules)/**/}*.test.js\""
   },
   "author": "Donatas Lučiūnas",
   "license": "ISC",

@@ -1,5 +1,5 @@
-import Computed from "./computed";
-import Watcher from "./watcher";
+import Computed from "./computed.js";
+import Watcher from "./watcher.js";
 
 type Dependent = Computed<any> | Watcher<any>;
 

@@ -1,6 +1,6 @@
-import Dependency from "./dependency";
-import Dependent from "./dependent";
-import Tracker from "./tracker";
+import Dependency from "./dependency.js";
+import Dependent from "./dependent.js";
+import Tracker from "./tracker.js";
 
 enum WatchState {
     Uncertain,

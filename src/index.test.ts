@@ -1,5 +1,6 @@
-import { Computed, Ref, Watcher } from './';
-import * as assert from 'assert';
+import 'mocha';
+import assert from 'assert';
+import { Computed, Ref, Watcher } from './index.js';
 
 describe('async reactivity', function () {
     describe('ref', function () {
@@ -243,9 +244,8 @@ describe('async reactivity', function () {
             b.value;
             assert.strictEqual(gate, 1);
             b.dispose();
-            a.value = 6;
             b.value;
-            assert.strictEqual(gate, 1);
+            assert.strictEqual(gate, 2);
         });
     });
 

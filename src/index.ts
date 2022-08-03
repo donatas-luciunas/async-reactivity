@@ -1,5 +1,5 @@
-export { default as Computed, ComputeFunc, ComputeFuncScoped } from './computed';
-export { default as Ref } from './ref';
-export { default as Watcher } from './watcher';
-export { default as Dependency } from './dependency';
-export { default as Dependent } from './dependent';
+export { default as Computed, ComputeFunc, ComputeFuncScoped } from './computed.js';
+export { default as Ref } from './ref.js';
+export { default as Watcher } from './watcher.js';
+export { default as Dependency } from './dependency.js';
+export { default as Dependent } from './dependent.js';

@@ -1,4 +1,4 @@
-import Dependent from "./dependent";
+import Dependent from "./dependent.js";
 
 export default interface Dependency<T> {
     get value(): T;

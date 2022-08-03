@@ -1,6 +1,6 @@
-import Dependency from "./dependency";
-import Dependent from "./dependent";
-import Tracker from "./tracker";
+import Dependency from "./dependency.js";
+import Dependent from "./dependent.js";
+import Tracker from "./tracker.js";
 
 declare type TrackValue = <T>(dependency: Dependency<T>) => T;
 export declare type ComputeFunc<T> = (value: TrackValue) => T;
@@ -122,7 +122,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     public invalidate() {
         if (this.state === ComputedState.Computing) {
             setImmediate(this.compute.bind(this));
-        } if (this.state !== ComputedState.Uncertain) {
+        } else if (this.state === ComputedState.Valid) {
             this.state = ComputedState.Uncertain;
             super.invalidate();
         }
