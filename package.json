@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx tsc -w -p src",
+    "build": "tsc -p src",
     "test": "mocha \"./{,!(node_modules)/**/}*.test.js\""
   },
   "author": "Donatas Lučiūnas",
