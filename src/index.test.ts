@@ -173,6 +173,14 @@ describe('async reactivity', function () {
             assert.rejects(async () => await a.value);
         });
 
+        it('dependency changed while computing', async function () {
+            const a = new Ref(5);
+            const b = new Computed(async (value) => value(a) + 5);
+            b.value;            // trigger compute
+            a.value = 8;
+            assert.strictEqual(await b.value, 13);
+        });
+
         it('old dependency changed while computing', async function () {
             let gate = 0;
             const a = new Ref(5);
