@@ -121,7 +121,8 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
 
     public invalidate() {
         if (this.state === ComputedState.Computing) {
-            setTimeout(this.compute.bind(this));
+            this.lastComputeAttemptPromise = undefined;     // prevent finalizeComputing if it is in the event loop already
+            Promise.resolve().then(this.compute.bind(this));
         } else if (this.state === ComputedState.Valid) {
             this.state = ComputedState.Uncertain;
             super.invalidate();
