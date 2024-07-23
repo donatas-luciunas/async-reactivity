@@ -28,13 +28,18 @@ export default class Watcher<T> extends Tracker<T> implements Dependent {
     }
 
     public invalidate() {
-        this.state = WatchState.Uncertain;
-        const oldValue = this._value;
-        this._value = this.dependency.value;
         if (this.state === WatchState.Uncertain) {
-            this.onChange(this._value, oldValue);
-            this.state = WatchState.Valid;
+            return;
         }
+        this.state = WatchState.Uncertain;
+        Promise.resolve().then(() => {
+            const oldValue = this._value;
+            this._value = this.dependency.value;
+            if (this.state === WatchState.Uncertain) {
+                this.onChange(this._value, oldValue);
+                this.state = WatchState.Valid;
+            }
+        });
     }
 
     public validate() {

@@ -31,32 +31,36 @@ describe('watcher', function () {
             gate++;
         }, false);
         a.value = 6;
+        await new Promise(resolve => setTimeout(resolve));
         assert.strictEqual(gate, 1);
         a.value = 7;
         a.value = 9;
         a.value = 11;
+        await new Promise(resolve => setTimeout(resolve));
         assert.strictEqual(gate, 2);
     });
 
     it('async sync cancel', async function () {
         const a = new Ref(5);
+        let computedGate = 0;
         const b = new Computed(async (value) => {
+            computedGate++;
             new Promise(resolve => setTimeout(resolve));
             return value(a) % 2;
         });
-        let gate = 0;
+        let watcherGate = 0;
         new Watcher(b, () => {
-            gate++;
+            watcherGate++;
         }, false);
         await new Promise(resolve => setTimeout(resolve, 10));
         a.value = 6;
         await new Promise(resolve => setTimeout(resolve, 10));
-        assert.strictEqual(gate, 1);
+        assert.strictEqual(computedGate, 2);
+        assert.strictEqual(watcherGate, 1);
         a.value = 7;
-        await new Promise(resolve => setTimeout(resolve, 10));
-        assert.strictEqual(gate, 2);
         a.value = 9;
         await new Promise(resolve => setTimeout(resolve, 10));
-        assert.strictEqual(gate, 3);
+        assert.strictEqual(computedGate, 3);
+        assert.strictEqual(watcherGate, 2);
     });
 });
