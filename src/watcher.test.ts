@@ -12,6 +12,22 @@ describe('watcher', function () {
         a.value = 6;
     });
 
+    it('sync debounce', async function () {
+        const a = new Ref(5);
+        let gate = 0;
+        new Watcher(a, () => {
+            gate++;
+        }, false);
+        a.value = 6;
+        await new Promise(resolve => setTimeout(resolve));
+        assert.strictEqual(gate, 1);
+        a.value = 7;
+        a.value = 8;
+        a.value = 9;
+        await new Promise(resolve => setTimeout(resolve));
+        assert.strictEqual(gate, 2);
+    });
+
     it('async', async function () {
         const a = new Computed(async () => {
             await new Promise(resolve => setTimeout(resolve));
