@@ -1,7 +1,4 @@
-import Computed from "./computed.js";
-import Watcher from "./watcher.js";
-
-type Dependent = Computed<any> | Watcher<any>;
+import Dependent from "./dependent.js";
 
 export default class Tracker<T> {
     protected dependents = new Set<Dependent>();
