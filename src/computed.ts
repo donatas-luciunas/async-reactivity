@@ -136,6 +136,11 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
+    public forceInvalidate() {
+        this.invalidate();
+        this.state = ComputedState.Invalid;
+    }
+
     public validate(dependency: Dependency<any>) {
         this.dependencies.set(dependency, false);
     }

@@ -133,6 +133,25 @@ describe('computed', function () {
         assert.strictEqual(c.value, 6);
         assert.strictEqual(gate, 1);
     });
+
+    it('compute when forced', function () {
+        let gate = 0;
+        const a = new Ref(5);
+        const b = new Computed((value) => {
+            return value(a) % 2;
+        });
+        const c = new Computed((value) => {
+            gate++;
+            return value(b) + 5;
+        });
+
+        assert.strictEqual(c.value, 6);
+        assert.strictEqual(gate, 1);
+
+        c.forceInvalidate();
+        assert.strictEqual(c.value, 6);
+        assert.strictEqual(gate, 2);
+    });
 });
 
 describe('async computed', function () {
