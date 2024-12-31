@@ -52,8 +52,15 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
                 this.dependencies.set(dependency, true);
             }
             if ([...this.dependencies.keys()].every(d => {
-                d.value;
-                return !this.dependencies.get(d);
+                if (d instanceof Computed) {
+                    if (d.state === ComputedState.Valid) {
+                        return true;
+                    } else if (d.state === ComputedState.Uncertain) {
+                        d.value;
+                        return !this.dependencies.get(d);
+                    }
+                }
+                return false;
             })) {
                 this.finalizeComputing();
                 this.validateDependents();

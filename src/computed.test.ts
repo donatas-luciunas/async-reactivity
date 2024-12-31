@@ -107,6 +107,27 @@ describe('computed', function () {
         });
 
         assert.strictEqual(c.value, 6);
+        assert.strictEqual(gate, 1);
+
+        a.value = 7;
+        assert.strictEqual(c.value, 6);
+        assert.strictEqual(gate, 1);
+    });
+
+    it('ignore same computed values', function () {
+        let gate = 0;
+        const a = new Ref(5);
+        const b1 = new Computed((value) => {
+            return value(a) % 2;
+        });
+        const b2 = new Computed(() => 5);
+        const c = new Computed((value) => {
+            gate++;
+            return value(b1) + value(b2);
+        });
+
+        assert.strictEqual(c.value, 6);
+        assert.strictEqual(gate, 1);
 
         a.value = 7;
         assert.strictEqual(c.value, 6);
