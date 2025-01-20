@@ -1,0 +1,1 @@
+export default <T>(v1?: T, v2?: T) => v1 === v2;

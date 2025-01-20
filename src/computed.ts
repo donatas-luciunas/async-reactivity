@@ -1,6 +1,7 @@
 import Dependency from "./dependency.js";
 import Dependent from "./dependent.js";
 import Tracker from "./tracker.js";
+import defaultIsEqual from "./defaultIsEqual.js";
 
 declare type TrackValue = <T>(dependency: Dependency<T>) => T;
 export declare type ComputeFunc<T> = (value: TrackValue) => T;
@@ -17,15 +18,17 @@ class CircularDependencyError extends Error { }
 
 export default class Computed<T> extends Tracker<T> implements Dependent, Dependency<T> {
     getter: ComputeFunc<T>;
+    isEqual: typeof defaultIsEqual<T>;
     private state = ComputedState.Invalid;
     private dependencies = new Map<Dependency<any>, boolean>();
     private computePromise?: T;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
 
-    constructor(getter: ComputeFunc<T>) {
+    constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>) {
         super();
         this.getter = getter;
+        this.isEqual = isEqual;
         this.prepareComputePromise();
     }
 
@@ -81,7 +84,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
             this._value = this.computePromise!;
         } else {
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
-            if (lastValue === this._value) {
+            if (this.isEqual(lastValue, this._value)) {
                 this.validateDependents();
             }
         }

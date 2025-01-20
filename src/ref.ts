@@ -1,10 +1,9 @@
 import Dependency from "./dependency.js";
 import Tracker from "./tracker.js";
-
-const defaultIsEqual = <T>(v1?: T, v2?: T) => v1 === v2;
+import defaultIsEqual from "./defaultIsEqual.js";
 
 export default class Ref<T> extends Tracker<T> implements Dependency<T> {
-    private isEqual: (a?: T, b?: T) => boolean;
+    private isEqual: typeof defaultIsEqual<T>;
 
     constructor(_value: T, isEqual = defaultIsEqual<T>) {
         super();
