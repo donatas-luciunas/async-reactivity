@@ -152,6 +152,18 @@ describe('computed', function () {
         assert.strictEqual(c.value, 6);
         assert.strictEqual(gate, 2);
     });
+
+    it('isEqual', function() {
+        const a = new Ref(1);
+        const b = new Computed((value) => {
+            return value(a);
+        }, (_newValue, oldValue) => oldValue !== undefined);
+
+        assert.strictEqual(b.value, 1);
+
+        a.value = 2;
+        assert.strictEqual(b.value, 1);
+    });
 });
 
 describe('async computed', function () {

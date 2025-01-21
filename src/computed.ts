@@ -74,19 +74,19 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         this.state = ComputedState.Computing;
         this.clearDependencies();
 
-        const lastValue = this._value;
-        this._value = this.getter(this.trackDependency);
-        if (this._value instanceof Promise) {
-            const computeAttemptPromise = this._value
+        const newValue: T = this.getter(this.trackDependency);
+        if (this.isEqual(newValue, this._value)) {
+            this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
+            this.validateDependents();
+        } else if (newValue instanceof Promise) {
+            const computeAttemptPromise = newValue
                 .then(result => this.handlePromiseThen(computeAttemptPromise, result))
                 .catch(error => this.handlePromiseCatch(computeAttemptPromise, error)) as Promise<void>;
             this.lastComputeAttemptPromise = computeAttemptPromise;
             this._value = this.computePromise!;
         } else {
+            this._value = newValue;
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
-            if (this.isEqual(lastValue, this._value)) {
-                this.validateDependents();
-            }
         }
         return this._value!;
     }
