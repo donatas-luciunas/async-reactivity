@@ -12,7 +12,7 @@ export default class Ref<T> extends Tracker<T> implements Dependency<T> {
     }
 
     public set value(_value: T) {
-        const lastValue = this._value;
+        const lastValue = this._value!;
         this._value = _value;
         if (!this.isEqual(lastValue, _value)) {
             this.invalidate();

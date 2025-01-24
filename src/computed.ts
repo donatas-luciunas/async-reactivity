@@ -75,7 +75,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         this.clearDependencies();
 
         const newValue: T = this.getter(this.trackDependency);
-        if (this.isEqual(newValue, this._value)) {
+        if (this.isEqual(newValue, this._value!)) {
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
             this.validateDependents();
         } else if (newValue instanceof Promise) {
