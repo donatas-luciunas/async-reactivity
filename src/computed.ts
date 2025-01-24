@@ -16,16 +16,16 @@ enum ComputedState {
 
 class CircularDependencyError extends Error { }
 
-export default class Computed<T> extends Tracker<T> implements Dependent, Dependency<T> {
+export default class Computed<T extends TBase, TBase> extends Tracker<T> implements Dependent, Dependency<T> {
     getter: ComputeFunc<T>;
-    isEqual: typeof defaultIsEqual<T>;
+    isEqual: typeof defaultIsEqual<TBase>;
     private state = ComputedState.Invalid;
     private dependencies = new Map<Dependency<any>, boolean>();
     private computePromise?: T;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
 
-    constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>) {
+    constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<TBase>) {
         super();
         this.getter = getter;
         this.isEqual = isEqual;
@@ -112,7 +112,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
-    private innerTrackDependency(this: Computed<T>, dependency: Dependency<any>) {
+    private innerTrackDependency(this: Computed<T, TBase>, dependency: Dependency<any>) {
         if (this.dependents.has(dependency as any)) {
             throw new CircularDependencyError();
         }
