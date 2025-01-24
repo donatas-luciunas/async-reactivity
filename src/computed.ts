@@ -16,7 +16,7 @@ enum ComputedState {
 
 class CircularDependencyError extends Error { }
 
-export default class Computed<T extends TBase, TBase> extends Tracker<T> implements Dependent, Dependency<T> {
+export default class Computed<T extends TBase, TBase = T> extends Tracker<T> implements Dependent, Dependency<T> {
     getter: ComputeFunc<T>;
     isEqual: typeof defaultIsEqual<TBase>;
     private state = ComputedState.Invalid;
