@@ -3,7 +3,7 @@ import Dependent from "./dependent.js";
 import Tracker from "./tracker.js";
 import defaultIsEqual from "./defaultIsEqual.js";
 
-declare type TrackValue = <T>(dependency: Dependency<T>) => T;
+export declare type TrackValue = <T>(dependency: Dependency<T>) => T;
 export declare type ComputeFunc<T> = (value: TrackValue) => T;
 export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1) => T2;
 

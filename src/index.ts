@@ -1,4 +1,4 @@
-export { default as Computed, ComputeFunc, ComputeFuncScoped } from './computed.js';
+export { default as Computed, ComputeFunc, ComputeFuncScoped, TrackValue } from './computed.js';
 export { default as Ref } from './ref.js';
 export { default as Watcher } from './watcher.js';
 export { default as Dependency } from './dependency.js';
