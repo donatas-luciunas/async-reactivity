@@ -4,8 +4,8 @@ import Tracker from "./tracker.js";
 import defaultIsEqual from "./defaultIsEqual.js";
 
 export declare type TrackValue = <T>(dependency: Dependency<T>) => T;
-export declare type ComputeFunc<T> = (value: TrackValue) => T;
-export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1) => T2;
+export declare type ComputeFunc<T> = (value: TrackValue, previousValue?: T) => T;
+export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, previousValue?: T2) => T2;
 
 enum ComputedState {
     Invalid,
@@ -74,7 +74,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
         this.state = ComputedState.Computing;
         this.clearDependencies();
 
-        const newValue: T = this.getter(this.trackDependency);
+        const newValue: T = this.getter(this.trackDependency, this._value);
         if (this.isEqual(newValue, this._value!)) {
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
             this.validateDependents();
