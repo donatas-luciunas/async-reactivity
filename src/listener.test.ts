@@ -3,11 +3,10 @@ import assert from 'assert';
 import { mock } from 'node:test';
 import { Watcher, Listener } from './index.js';
 
-describe('listener', function () {
+describe.only('listener', function () {
     it('wait for dependent', function () {
         assert.doesNotThrow(() => {
-            new Listener({
-                init: () => { throw new Error(); },
+            new Listener(1, {
                 start: () => { throw new Error(); },
                 stop: () => { throw new Error(); },
             });
@@ -15,8 +14,7 @@ describe('listener', function () {
     });
 
     it('init', function () {
-        const listener = new Listener({
-            init: () => 1,
+        const listener = new Listener(1, {
             start: () => { throw new Error(); },
             stop: () => { throw new Error(); },
         });
@@ -25,11 +23,10 @@ describe('listener', function () {
     });
 
     it('start', async function () {
-        const listener = new Listener({
-            init: () => 1,
-            start: (setter) => {
+        const listener = new Listener(1, {
+            start: () => {
                 setTimeout(() => {
-                    setter(2);
+                    listener.value = 2;
                 }, 10);
             },
             stop: () => { },
@@ -50,12 +47,11 @@ describe('listener', function () {
     it('stop', async function () {
         let gate = false;
         let timeout: NodeJS.Timeout;
-        const listener = new Listener({
-            init: () => 1,
-            start: (setter) => {
+        const listener = new Listener(1, {
+            start: () => {
                 timeout = setTimeout(() => {
                     gate = true;
-                    setter(2);
+                    listener.value = 2;
                 }, 10);
             },
             stop: () => {
@@ -76,11 +72,10 @@ describe('listener', function () {
 
     it('stop + start', async function () {
         let timeout: NodeJS.Timeout;
-        const listener = new Listener({
-            init: () => 1,
-            start: (setter) => {
+        const listener = new Listener(1, {
+            start: () => {
                 timeout = setTimeout(() => {
-                    setter(2);
+                    listener.value = 2;
                 }, 10);
             },
             stop: () => {

@@ -1,17 +1,15 @@
-import Dependency from "./dependency.js";
 import Dependent from "./dependent.js";
-import Tracker from "./tracker.js";
+import Ref from "./ref.js";
+import defaultIsEqual from "./defaultIsEqual.js";
 
-export default class Listener<T> extends Tracker<T> implements Dependency<T> {
-    private init: () => T;
-    private start: (setter: (value: T) => void) => void;
+export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
+    private start: () => void;
     private stop: () => void;
     private listening = false;
 
-    constructor({ init, start, stop }: { init: () => T, start: (setter: (value: T) => void) => void, stop: () => void }) {
-        super();
+    constructor(_value: T, { start, stop }: { start: () => void, stop: () => void }, isEqual = defaultIsEqual<TBase>) {
+        super(_value, isEqual);
 
-        this.init = init;
         this.start = start;
         this.stop = stop;
     }
@@ -19,26 +17,16 @@ export default class Listener<T> extends Tracker<T> implements Dependency<T> {
     public addDependent(dependent: Dependent): void {
         super.addDependent(dependent);
         if (!this.listening) {
-            this.start((value) => {
-                this._value = value;
-                this.invalidate();
-            });
             this.listening = true;
+            this.start();
         }
     }
 
     public removeDependent(dependent: Dependent): void {
         super.removeDependent(dependent);
         if (this.dependents.size === 0) {
-            this.stop();
             this.listening = false;
+            this.stop();
         }
-    }
-
-    public get value() {
-        if (this._value === undefined) {
-            this._value = this.init();
-        }
-        return this._value;
     }
 }
