@@ -1,7 +1,7 @@
 import 'mocha';
 import assert from 'assert';
 import { mock } from 'node:test';
-import { Watcher, Listener } from './index.js';
+import { Watcher, Listener, Computed, Ref } from './index.js';
 
 describe('listener', function () {
     it('wait for dependent', function () {
@@ -97,5 +97,27 @@ describe('listener', function () {
         await new Promise((resolve) => setTimeout(resolve, 15));
 
         assert.strictEqual(onChange.mock.callCount(), 3);
+    });
+
+    it('keep listening when recomputing', async function() {
+        let gate = 0;
+        const listener = new Listener(
+            1,
+            () => {
+                gate++;
+            },
+            () => {}
+        );
+
+        const a = new Ref(5);
+
+        const b = new Computed(value => value(a) + value(listener));
+
+        b.value;
+        assert.strictEqual(gate, 1);
+
+        a.value = 6;
+        b.value;
+        assert.strictEqual(gate, 1);
     });
 });

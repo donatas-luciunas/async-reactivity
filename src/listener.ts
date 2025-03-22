@@ -24,9 +24,11 @@ export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
 
     public removeDependent(dependent: Dependent): void {
         super.removeDependent(dependent);
-        if (this.dependents.size === 0) {
-            this.listening = false;
-            this.stop();
-        }
+        Promise.resolve().then(() => {
+            if (this.dependents.size === 0) {
+                this.listening = false;
+                this.stop();
+            }
+        })
     }
 }
