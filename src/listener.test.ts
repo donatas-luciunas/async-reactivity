@@ -3,34 +3,34 @@ import assert from 'assert';
 import { mock } from 'node:test';
 import { Watcher, Listener } from './index.js';
 
-describe.only('listener', function () {
+describe('listener', function () {
     it('wait for dependent', function () {
         assert.doesNotThrow(() => {
-            new Listener(1, {
-                start: () => { throw new Error(); },
-                stop: () => { throw new Error(); },
-            });
+            new Listener(1,
+                () => { throw new Error(); },
+                () => { throw new Error(); }
+            );
         });
     });
 
     it('init', function () {
-        const listener = new Listener(1, {
-            start: () => { throw new Error(); },
-            stop: () => { throw new Error(); },
-        });
+        const listener = new Listener(1,
+            () => { throw new Error(); },
+            () => { throw new Error(); }
+        );
 
         assert.strictEqual(listener.value, 1);
     });
 
     it('start', async function () {
-        const listener = new Listener(1, {
-            start: () => {
+        const listener = new Listener(1,
+            () => {
                 setTimeout(() => {
                     listener.value = 2;
                 }, 10);
             },
-            stop: () => { },
-        });
+            () => { },
+        );
 
         const onChange = mock.fn();
         new Watcher(listener, onChange);
@@ -47,19 +47,19 @@ describe.only('listener', function () {
     it('stop', async function () {
         let gate = false;
         let timeout: NodeJS.Timeout;
-        const listener = new Listener(1, {
-            start: () => {
+        const listener = new Listener(1,
+            () => {
                 timeout = setTimeout(() => {
                     gate = true;
                     listener.value = 2;
                 }, 10);
             },
-            stop: () => {
+            () => {
                 clearTimeout(timeout);
             },
-        });
+        );
 
-        const w = new Watcher(listener, () => {});
+        const w = new Watcher(listener, () => { });
 
         await new Promise((resolve) => setTimeout(resolve, 5));
 
@@ -72,16 +72,16 @@ describe.only('listener', function () {
 
     it('stop + start', async function () {
         let timeout: NodeJS.Timeout;
-        const listener = new Listener(1, {
-            start: () => {
+        const listener = new Listener(1,
+            () => {
                 timeout = setTimeout(() => {
                     listener.value = 2;
                 }, 10);
             },
-            stop: () => {
+            () => {
                 clearTimeout(timeout);
             },
-        });
+        );
 
         const onChange = mock.fn();
         const w1 = new Watcher(listener, onChange);

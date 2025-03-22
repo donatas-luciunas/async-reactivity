@@ -7,7 +7,7 @@ export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
     private stop: () => void;
     private listening = false;
 
-    constructor(_value: T, { start, stop }: { start: () => void, stop: () => void }, isEqual = defaultIsEqual<TBase>) {
+    constructor(_value: T, start: () => void, stop: () => void, isEqual = defaultIsEqual<TBase>) {
         super(_value, isEqual);
 
         this.start = start;
