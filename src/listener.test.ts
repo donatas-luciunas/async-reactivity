@@ -120,4 +120,34 @@ describe('listener', function () {
         b.value;
         assert.strictEqual(gate, 1);
     });
+
+    it('keep listening when recomputing async', async function() {
+        let gate = 0;
+        const listener = new Listener(
+            1,
+            () => {
+                gate++;
+            },
+            () => {}
+        );
+
+        const a = new Ref(5);
+
+        const b = new Computed(async value => {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            return value(a) + value(listener);
+        });
+
+        const c = new Watcher(listener, () => {});
+
+        b.value;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        assert.strictEqual(gate, 1);
+
+        a.value = 6;
+        b.value;
+        c.dispose();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        assert.strictEqual(gate, 1);
+    });
 });

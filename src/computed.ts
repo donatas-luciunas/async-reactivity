@@ -21,7 +21,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
     isEqual: typeof defaultIsEqual<TBase>;
     private state = ComputedState.Invalid;
     private dependencies = new Map<Dependency<any>, boolean>();
-    private computePromise?: T;
+    private computePromise?: Promise<any>;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
 
@@ -38,7 +38,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
                 resolve,
                 reject
             };
-        }) as unknown as T;
+        });
     }
 
     public get value(): T {
@@ -83,7 +83,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
                 .then(result => this.handlePromiseThen(computeAttemptPromise, result))
                 .catch(error => this.handlePromiseCatch(computeAttemptPromise, error)) as Promise<void>;
             this.lastComputeAttemptPromise = computeAttemptPromise;
-            this._value = this.computePromise!;
+            this._value = this.computePromise! as T;
         } else {
             this._value = newValue;
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
@@ -93,7 +93,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
 
     private clearDependencies() {
         for (const dependency of this.dependencies.keys()) {
-            dependency.removeDependent(this);
+            dependency.removeDependent(this, this.computePromise);
         }
         this.dependencies.clear();
     }

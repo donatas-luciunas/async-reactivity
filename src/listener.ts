@@ -6,6 +6,7 @@ export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
     private start: () => void;
     private stop: () => void;
     private listening = false;
+    private lastPromise: Promise<any> | undefined;
 
     constructor(_value: T, start: () => void, stop: () => void, isEqual = defaultIsEqual<TBase>) {
         super(_value, isEqual);
@@ -22,13 +23,17 @@ export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
         }
     }
 
-    public removeDependent(dependent: Dependent): void {
+    public removeDependent(dependent: Dependent, promise = Promise.resolve()): void {
         super.removeDependent(dependent);
-        Promise.resolve().then(() => {
-            if (this.dependents.size === 0) {
-                this.listening = false;
-                this.stop();
+
+        const currentPromise = Promise.all([promise, this.lastPromise]).finally(() => {
+            if (this.lastPromise === currentPromise) {
+                if (this.dependents.size === 0) {
+                    this.listening = false;
+                    this.stop();
+                }
             }
-        })
+        });
+        this.lastPromise = currentPromise;
     }
 }
