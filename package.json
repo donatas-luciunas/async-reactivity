@@ -1,6 +1,6 @@
 {
   "name": "async-reactivity",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "description": "",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -22,9 +22,13 @@
   "author": "Donatas Lučiūnas",
   "license": "ISC",
   "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.13.11",
     "mocha": "^10.7.3",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
   }
 }

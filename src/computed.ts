@@ -2,6 +2,8 @@ import Dependency from "./dependency.js";
 import Dependent from "./dependent.js";
 import Tracker from "./tracker.js";
 import defaultIsEqual from "./defaultIsEqual.js";
+import { Deferrer } from "./deferrer.js";
+import { debounce } from 'lodash-es';
 
 export declare type TrackValue = <T>(dependency: Dependency<T>) => T;
 export declare type ComputeFunc<T> = (value: TrackValue, previousValue?: T) => T;
@@ -24,12 +26,21 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
     private computePromise?: Promise<any>;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
+    private deferrer?: Deferrer;
 
-    constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<TBase>) {
+    constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<TBase>, timeToLive?: number) {
         super();
         this.getter = getter;
         this.isEqual = isEqual;
         this.prepareComputePromise();
+
+        if (timeToLive !== undefined) {
+            this.deferrer = new Deferrer(debounce(() => {
+                if (this.dependents.size === 0) {
+                    this.reset();
+                }
+            }, timeToLive));
+        }
     }
 
     private prepareComputePromise() {
@@ -72,7 +83,7 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
         }
 
         this.state = ComputedState.Computing;
-        this.clearDependencies();
+        this.clearDependencies(true);
 
         const newValue: T = this.getter(this.trackDependency, this._value);
         if (this.isEqual(newValue, this._value!)) {
@@ -91,9 +102,9 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
         return this._value!;
     }
 
-    private clearDependencies() {
+    private clearDependencies(compute: boolean) {
         for (const dependency of this.dependencies.keys()) {
-            dependency.removeDependent(this, this.computePromise);
+            dependency.removeDependent(this, compute ? this.computePromise : undefined);
         }
         this.dependencies.clear();
     }
@@ -154,11 +165,20 @@ export default class Computed<T extends TBase, TBase = T> extends Tracker<T> imp
         }
     }
 
-    public dispose() {
-        this.clearDependencies();
+    public removeDependent(dependent: Dependent, promise = Promise.resolve()): void {
+        super.removeDependent(dependent);
+        this.deferrer?.finally(promise);
+    }
+
+    public reset() {
+        this.clearDependencies(false);
         this.state = ComputedState.Invalid;
         this._value = undefined;
         this.lastComputeAttemptPromise = undefined;
         this.prepareComputePromise();
+    }
+
+    public dispose() {
+        this.reset();
     }
 }

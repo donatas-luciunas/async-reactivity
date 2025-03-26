@@ -134,20 +134,20 @@ describe('listener', function () {
         const a = new Ref(5);
 
         const b = new Computed(async value => {
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise(resolve => setTimeout(resolve, 10));
             return value(a) + value(listener);
         });
 
         const c = new Watcher(listener, () => {});
 
         b.value;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 20));
         assert.strictEqual(gate, 1);
 
         a.value = 6;
         b.value;
         c.dispose();
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 20));
         assert.strictEqual(gate, 1);
     });
 });

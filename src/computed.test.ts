@@ -280,7 +280,7 @@ describe('async computed', function () {
         assert.rejects(() => a.value);
     });
 
-    it('dispose computed', async function () {
+    it('reset computed', async function () {
         const a = new Ref(5);
         let gate = 0;
         const b = new Computed(value => {
@@ -289,8 +289,22 @@ describe('async computed', function () {
         });
         b.value;
         assert.strictEqual(gate, 1);
-        b.dispose();
+        b.reset();
         b.value;
         assert.strictEqual(gate, 2);
+    });
+
+    it('auto reset', async function() {
+        const a = new Computed(() => true, undefined, 0);
+        const b = new Computed(value => value(a));
+
+        assert.strictEqual(b.value, true);
+
+        b.dispose();
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        // @ts-expect-error
+        assert.strictEqual(a._value, undefined);
     });
 });
