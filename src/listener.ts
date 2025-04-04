@@ -3,13 +3,13 @@ import Ref from "./ref.js";
 import defaultIsEqual from "./defaultIsEqual.js";
 import { Deferrer } from "./deferrer.js";
 
-export default class Listener<T extends TBase, TBase = T> extends Ref<T> {
+export default class Listener<T> extends Ref<T> {
     private start: () => void;
     private stop: () => void;
     private listening = false;
     private deferrer: Deferrer;
 
-    constructor(_value: T, start: () => void, stop: () => void, isEqual = defaultIsEqual<TBase>) {
+    constructor(_value: T, start: () => void, stop: () => void, isEqual = defaultIsEqual<T>) {
         super(_value, isEqual);
 
         this.start = start;
