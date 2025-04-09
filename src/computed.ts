@@ -6,15 +6,15 @@ import { Deferrer } from "./deferrer.js";
 import { debounce } from 'lodash-es';
 
 export declare type TrackValue = <T>(dependency: Dependency<T>) => T;
-export declare type ComputeFunc<T> = (value: TrackValue, previousValue?: T) => T;
-export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, previousValue?: T2) => T2;
+export declare type ComputeFunc<T> = (value: TrackValue, previousValue: T | undefined, abortSignal: AbortSignal) => T;
+export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, previousValue: T2 | undefined, abortSignal: AbortSignal) => T2;
 
 enum ComputedState {
     Invalid,
     Valid,
     Uncertain,
     Computing
-};
+}
 
 class CircularDependencyError extends Error { }
 
@@ -27,6 +27,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
     private deferrer?: Deferrer;
+    private abortController?: AbortController;
 
     constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>, timeToLive?: number) {
         super();
@@ -80,12 +81,15 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
                 this.validateDependents();
                 return this._value!;
             }
+        } else if (this.state === ComputedState.Computing) {
+            this.abortController?.abort();
         }
 
         this.state = ComputedState.Computing;
         this.clearDependencies(true);
+        this.abortController = new AbortController();
 
-        const newValue: T = this.getter(this.trackDependency, this._value);
+        const newValue: T = this.getter(this.trackDependency, this._value, this.abortController.signal);
         if (this.isEqual(newValue, this._value!)) {
             this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
             this.validateDependents();
@@ -137,6 +141,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     private finalizeComputing() {
         this.state = ComputedState.Valid;
         this.lastComputeAttemptPromise = undefined;
+        this.abortController = undefined;
         this.prepareComputePromise();
     }
 

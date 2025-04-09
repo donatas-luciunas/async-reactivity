@@ -219,6 +219,24 @@ describe('async computed', function () {
         assert.strictEqual(await b.value, 13);
     });
 
+    it('dependency changed while computing - abortSignal', async function () {
+        const a = new Ref(5);
+        let gate = 0;
+        const b = new Computed(async (value, _previousValue, abortSignal) => {
+            const dep = value(a);
+            await new Promise(resolve => setTimeout(resolve, 10));
+            if (abortSignal.aborted) {
+                throw new Error();
+            }
+            gate++;
+            return dep + 5;
+        });
+        b.value;            // trigger compute
+        a.value = 8;
+        await b.value;
+        assert.strictEqual(gate, 1);
+    });
+
     it('old dependency changed while computing', async function () {
         let gate = 0;
         const a = new Ref(5);
