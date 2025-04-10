@@ -153,6 +153,24 @@ describe('computed', function () {
         assert.strictEqual(gate, 2);
     });
 
+    it('compute and abort when forced', async function () {
+        let gate = 0;
+        const b = new Computed(async (_value, _previousValue, abortSignal) => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            if (abortSignal.aborted) {
+                gate++;
+                throw new Error();
+            }
+            return 5;
+        });
+
+        const v = b.value;
+        await new Promise(resolve => setTimeout(resolve, 5));
+        b.forceInvalidate();
+        assert.strictEqual(await v, 5);
+        assert.strictEqual(gate, 1);
+    });
+
     it('isEqual', function() {
         const a = new Ref(1);
         const b = new Computed((value) => {

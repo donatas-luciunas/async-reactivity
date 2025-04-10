@@ -157,7 +157,9 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
 
     public forceInvalidate() {
         this.invalidate();
-        this.state = ComputedState.Invalid;
+        if (this.state !== ComputedState.Computing) {
+            this.state = ComputedState.Invalid;
+        }
     }
 
     public validate(dependency: Dependency<any>) {
