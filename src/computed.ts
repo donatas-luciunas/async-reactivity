@@ -5,7 +5,7 @@ import defaultIsEqual from "./defaultIsEqual.js";
 import { Deferrer } from "./deferrer.js";
 import { debounce } from 'lodash-es';
 
-export declare type TrackValue = <T>(dependency: Dependency<T>) => T;
+export declare type TrackValue = (<T>(dependency: Dependency<T>) => T) & (<T>(dependency: Dependency<T> | undefined) => T | undefined);
 export declare type ComputeFunc<T> = (value: TrackValue, previousValue: T | undefined, abortSignal: AbortSignal) => T;
 export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, previousValue: T2 | undefined, abortSignal: AbortSignal) => T2;
 
@@ -127,7 +127,10 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
-    private innerTrackDependency(this: Computed<T>, dependency: Dependency<any>) {
+    private innerTrackDependency(this: Computed<T>, dependency?: Dependency<any>) {
+        if (dependency === undefined) {
+            return undefined;
+        }
         if (this.dependents.has(dependency as any)) {
             throw new CircularDependencyError();
         }
