@@ -22,7 +22,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     getter: ComputeFunc<T>;
     isEqual: typeof defaultIsEqual<T>;
     private state = ComputedState.Invalid;
-    private dependencies = new Map<Dependency<unknown>, boolean>();   // boolean indicates whether value is up to date in regards to the dependency (false - up to date, true - needs update)
+    private dependencies = new Map<Dependency<unknown>, boolean>();   // boolean indicates whether value is in sync with the dependency
     private computePromise?: Promise<unknown>;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
@@ -63,14 +63,14 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
 
     private compute() {
         if (this.state === ComputedState.Uncertain) {
-            const upToDate = ![...this.dependencies.entries()].some(([d, needsUpdate]) => {
-                if (needsUpdate && d instanceof Computed && d.state === ComputedState.Uncertain) {
+            const inSync = [...this.dependencies.entries()].every(([d, inSync]) => {
+                if (!inSync && d instanceof Computed && d.state === ComputedState.Uncertain) {
                     d.value;
                     return this.dependencies.get(d);
                 }
-                return needsUpdate;
+                return inSync;
             });
-            if (upToDate) {
+            if (inSync) {
                 this.finalizeComputing();
                 this.validateDependents();
                 return this._value!;
@@ -128,7 +128,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         if (this.dependents.has(dependency as any)) {
             throw new CircularDependencyError();
         }
-        this.dependencies.set(dependency, false);
+        this.dependencies.set(dependency, true);
         dependency.addDependent(this);
         return dependency.value;
     }
@@ -149,10 +149,10 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         } else if (this.state === ComputedState.Valid) {
             this.state = ComputedState.Uncertain;
             if (dependency) {
-                this.dependencies.set(dependency, true);
+                this.dependencies.set(dependency, false);
             } else {
                 for (const dep of this.dependencies.keys()) {
-                    this.dependencies.set(dep, true);
+                    this.dependencies.set(dep, false);
                 }
             }
             super.invalidate();
@@ -167,7 +167,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     }
 
     public validate(dependency: Dependency<unknown>) {
-        this.dependencies.set(dependency, false);
+        this.dependencies.set(dependency, true);
     }
 
     private validateDependents() {
