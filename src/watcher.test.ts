@@ -79,4 +79,29 @@ describe('watcher', function () {
         assert.strictEqual(computedGate, 3);
         assert.strictEqual(watcherGate, 2);
     });
+
+    it('parallel compute', async function () {
+        const r = new Ref(5);
+        const c = new Computed((value) => value(r) + 1);
+        const c1 = new Computed((value) => value(c) + 1);
+        const c2 = new Computed((value) => value(c) + 2);
+        let gate1 = 0, gate2 = 0;
+
+        new Watcher(c1, () => {
+            gate1++;
+        });
+        new Watcher(c2, () => {
+            gate2++;
+        });
+        await new Promise(resolve => setTimeout(resolve, 10));
+        
+        r.value = 6;
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        r.value = 7;
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        assert.strictEqual(gate1, 3);
+        assert.strictEqual(gate2, 3);
+    });
 });

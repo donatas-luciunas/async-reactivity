@@ -1,7 +1,7 @@
 import Dependency from "./dependency.js";
 
 export default interface Dependent {
-    invalidate(): void;
-    validate(dependency: Dependency<any>): void;
+    invalidate(dependency?: Dependency<unknown>): void;
+    validate(dependency: Dependency<unknown>): void;
     dispose(): void;
 }

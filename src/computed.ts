@@ -22,8 +22,8 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     getter: ComputeFunc<T>;
     isEqual: typeof defaultIsEqual<T>;
     private state = ComputedState.Invalid;
-    private dependencies = new Map<Dependency<any>, boolean>();
-    private computePromise?: Promise<any>;
+    private dependencies = new Map<Dependency<unknown>, boolean>();   // boolean indicates whether value is up to date in regards to the dependency (false - up to date, true - needs update)
+    private computePromise?: Promise<unknown>;
     private computePromiseActions?: { resolve: Function, reject: Function };
     private lastComputeAttemptPromise?: Promise<void>;
     private deferrer?: Deferrer;
@@ -63,20 +63,14 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
 
     private compute() {
         if (this.state === ComputedState.Uncertain) {
-            for (const dependency of this.dependencies.keys()) {
-                this.dependencies.set(dependency, true);
-            }
-            if ([...this.dependencies.keys()].every(d => {
-                if (d instanceof Computed) {
-                    if (d.state === ComputedState.Valid) {
-                        return true;
-                    } else if (d.state === ComputedState.Uncertain) {
-                        d.value;
-                        return !this.dependencies.get(d);
-                    }
+            const upToDate = ![...this.dependencies.entries()].some(([d, needsUpdate]) => {
+                if (needsUpdate && d instanceof Computed && d.state === ComputedState.Uncertain) {
+                    d.value;
+                    return this.dependencies.get(d);
                 }
-                return false;
-            })) {
+                return needsUpdate;
+            });
+            if (upToDate) {
                 this.finalizeComputing();
                 this.validateDependents();
                 return this._value!;
@@ -127,19 +121,19 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
-    private innerTrackDependency(this: Computed<T>, dependency?: Dependency<any>) {
+    private innerTrackDependency(this: Computed<T>, dependency?: Dependency<unknown>) {
         if (dependency === undefined) {
             return undefined;
         }
         if (this.dependents.has(dependency as any)) {
             throw new CircularDependencyError();
         }
-        this.dependencies.set(dependency, true);
+        this.dependencies.set(dependency, false);
         dependency.addDependent(this);
         return dependency.value;
     }
 
-    private trackDependency = this.innerTrackDependency.bind(this);
+    private trackDependency = this.innerTrackDependency.bind(this) as TrackValue;
 
     private finalizeComputing() {
         this.state = ComputedState.Valid;
@@ -148,12 +142,19 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         this.prepareComputePromise();
     }
 
-    public invalidate() {
+    public invalidate(dependency?: Dependency<unknown>) {
         if (this.state === ComputedState.Computing) {
             this.lastComputeAttemptPromise = undefined;     // prevent finalizeComputing if it is in the event loop already
             Promise.resolve().then(this.compute.bind(this));
         } else if (this.state === ComputedState.Valid) {
             this.state = ComputedState.Uncertain;
+            if (dependency) {
+                this.dependencies.set(dependency, true);
+            } else {
+                for (const dep of this.dependencies.keys()) {
+                    this.dependencies.set(dep, true);
+                }
+            }
             super.invalidate();
         }
     }
@@ -165,7 +166,7 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
-    public validate(dependency: Dependency<any>) {
+    public validate(dependency: Dependency<unknown>) {
         this.dependencies.set(dependency, false);
     }
 

@@ -14,7 +14,7 @@ export default class Tracker<T> {
 
     public invalidate(): void {
         for (const dependent of [...this.dependents.keys()]) {
-            dependent.invalidate();
+            dependent.invalidate(this);
         }
     }
 
