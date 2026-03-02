@@ -143,18 +143,18 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
     }
 
     public invalidate(dependency?: Dependency<unknown>) {
+        if (dependency) {
+            this.dependencies.set(dependency, false);
+        } else {
+            for (const dep of this.dependencies.keys()) {
+                this.dependencies.set(dep, false);
+            }
+        }
         if (this.state === ComputedState.Computing) {
             this.lastComputeAttemptPromise = undefined;     // prevent finalizeComputing if it is in the event loop already
             Promise.resolve().then(this.compute.bind(this));
         } else if (this.state === ComputedState.Valid) {
             this.state = ComputedState.Uncertain;
-            if (dependency) {
-                this.dependencies.set(dependency, false);
-            } else {
-                for (const dep of this.dependencies.keys()) {
-                    this.dependencies.set(dep, false);
-                }
-            }
             super.invalidate();
         }
     }
