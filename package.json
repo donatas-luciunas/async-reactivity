@@ -1,6 +1,6 @@
 {
   "name": "async-reactivity",
-  "version": "2.0.26",
+  "version": "2.0.27",
   "description": "",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -23,12 +23,12 @@
   "license": "ISC",
   "devDependencies": {
     "@types/lodash-es": "^4.17.12",
-    "@types/mocha": "^10.0.8",
-    "@types/node": "^22.13.11",
-    "mocha": "^10.7.3",
-    "typescript": "^5.8.2"
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.11.0",
+    "mocha": "^11.7.5",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.17.23"
   }
 }

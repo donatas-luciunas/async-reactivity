@@ -1,25 +1,40 @@
 import Dependency from "./dependency.js";
-import Tracker from "./tracker.js";
 import defaultIsEqual from "./defaultIsEqual.js";
+import { Dependent } from "./index.js";
 
-export default class Ref<T> extends Tracker<T> implements Dependency<T> {
+export default class Ref<T> implements Dependency<T> {
     private isEqual: typeof defaultIsEqual<T>;
+    protected dependents = new Set<Dependent>();
+    protected _value?: T;
 
     constructor(_value: T, isEqual = defaultIsEqual<T>) {
-        super();
         this._value = _value;
         this.isEqual = isEqual;
     }
 
     public set value(_value: T) {
-        const lastValue = this._value!;
+        const oldValue = this._value!;
         this._value = _value;
-        if (!this.isEqual(lastValue, _value)) {
+        if (!this.isEqual(_value, oldValue)) {
             this.invalidate();
         }
     }
 
     public get value(): T {
-        return super.value!;
+        return this._value!;
+    }
+
+    public addDependent(dependent: Dependent) {
+        this.dependents.add(dependent);
+    }
+
+    public removeDependent(dependent: Dependent) {
+        this.dependents.delete(dependent);
+    }
+
+    public invalidate(): void {
+        for (const dependent of [...this.dependents.keys()]) {
+            dependent.invalidate(this);
+        }
     }
 }

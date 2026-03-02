@@ -1,39 +1,53 @@
 import Dependency from "./dependency.js";
 import Dependent from "./dependent.js";
-import Tracker from "./tracker.js";
 import defaultIsEqual from "./defaultIsEqual.js";
 import { Deferrer } from "./deferrer.js";
 import { debounce } from 'lodash-es';
+import Effect, { EffectState } from "./effect.js";
 
 export declare type TrackValue = (<T>(dependency: Dependency<T>) => T) & (<T>(dependency: Dependency<T> | undefined) => T | undefined);
 export declare type ComputeFunc<T> = (value: TrackValue, previousValue: T | undefined, abortSignal: AbortSignal) => T;
 export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, previousValue: T2 | undefined, abortSignal: AbortSignal) => T2;
 
-enum ComputedState {
-    Invalid,
-    Valid,
-    Uncertain,
-    Computing
-}
-
 class CircularDependencyError extends Error { }
 
-export default class Computed<T> extends Tracker<T> implements Dependent, Dependency<T> {
+export default class Computed<T> extends Effect implements Dependent, Dependency<T> {
+    private _value?: T;
     getter: ComputeFunc<T>;
     isEqual: typeof defaultIsEqual<T>;
-    private state = ComputedState.Invalid;
-    private dependencies = new Map<Dependency<unknown>, boolean>();   // boolean indicates whether value is in sync with the dependency
-    private computePromise?: Promise<unknown>;
-    private computePromiseActions?: { resolve: Function, reject: Function };
-    private lastComputeAttemptPromise?: Promise<void>;
+    private dependents = new Set<Dependent>();
     private deferrer?: Deferrer;
-    private abortController?: AbortController;
 
     constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>, timeToLive?: number) {
-        super();
+        let computePromiseActions: { resolve: Function, reject: Function } | undefined = undefined;
+        const completeAction = (action: 'resolve' | 'reject', promise: Promise<unknown>, value: T | Error) => {
+            if (promise === lastComputePromise) {
+                computePromiseActions![action](value);
+                computePromiseActions = undefined;
+            }
+        };
+
+        let lastComputePromise: T | undefined = undefined;
+        super(((value, _firstRun, abortSignal) => {
+            const newValue = getter(value, this._value, abortSignal);
+            if (newValue instanceof Promise) {
+                if (!computePromiseActions) {
+                    this._value = new Promise((resolve, reject) => {
+                        computePromiseActions = { reject, resolve };
+                    }) as T;
+                }
+                lastComputePromise = newValue;
+                newValue
+                    .then(v => completeAction('resolve', newValue, v))
+                    .catch(err => completeAction('reject', newValue, err));
+                return newValue;
+            } else {
+                this._value = newValue;
+            }
+        }), false);
+
         this.getter = getter;
         this.isEqual = isEqual;
-        this.prepareComputePromise();
 
         if (timeToLive !== undefined) {
             this.deferrer = new Deferrer(debounce(() => {
@@ -44,130 +58,16 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
-    private prepareComputePromise() {
-        this.computePromise = new Promise((resolve, reject) => {
-            this.computePromiseActions = {
-                resolve,
-                reject
-            };
-        });
-    }
-
     public get value(): T {
-        if (this.state === ComputedState.Invalid || this.state === ComputedState.Uncertain) {
-            return this.compute();
-        }
-
-        return this._value!;
-    }
-
-    private compute() {
-        if (this.state === ComputedState.Uncertain) {
-            const inSync = [...this.dependencies.entries()].every(([d, inSync]) => {
-                if (!inSync && d instanceof Computed && d.state === ComputedState.Uncertain) {
-                    d.value;
-                    return this.dependencies.get(d);
-                }
-                return inSync;
-            });
-            if (inSync) {
-                this.finalizeComputing();
+        if (this.state === EffectState.Initial || this.state === EffectState.Scheduled) {
+            const oldValue = this._value!;
+            this.run();
+            if (this.isEqual(this._value!, oldValue)) {
                 this.validateDependents();
-                return this._value!;
             }
-        } else if (this.state === ComputedState.Computing) {
-            this.abortController?.abort();
         }
 
-        this.state = ComputedState.Computing;
-        this.clearDependencies(true);
-        this.abortController = new AbortController();
-
-        const newValue: T = this.getter(this.trackDependency, this._value, this.abortController.signal);
-        if (this.isEqual(newValue, this._value!)) {
-            this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
-            this.validateDependents();
-        } else if (newValue instanceof Promise) {
-            const computeAttemptPromise = newValue
-                .then(result => this.handlePromiseThen(computeAttemptPromise, result))
-                .catch(error => this.handlePromiseCatch(computeAttemptPromise, error)) as Promise<void>;
-            this.lastComputeAttemptPromise = computeAttemptPromise;
-            this._value = this.computePromise! as T;
-        } else {
-            this._value = newValue;
-            this.handlePromiseThen(this.lastComputeAttemptPromise!, this._value);
-        }
         return this._value!;
-    }
-
-    private clearDependencies(compute: boolean) {
-        for (const dependency of this.dependencies.keys()) {
-            dependency.removeDependent(this, compute ? this.computePromise : undefined);
-        }
-        this.dependencies.clear();
-    }
-
-    private handlePromiseThen(computeAttemptPromise: Promise<void>, result: any) {
-        if (this.lastComputeAttemptPromise === computeAttemptPromise) {
-            this.computePromiseActions!.resolve(result);
-            this.finalizeComputing();
-        }
-    }
-
-    private handlePromiseCatch(computeAttemptPromise: Promise<void>, error: any) {
-        if (this.lastComputeAttemptPromise === computeAttemptPromise) {
-            this.computePromiseActions!.reject(error);
-            this.finalizeComputing();
-        }
-    }
-
-    private innerTrackDependency(this: Computed<T>, dependency?: Dependency<unknown>) {
-        if (dependency === undefined) {
-            return undefined;
-        }
-        if (this.dependents.has(dependency as any)) {
-            throw new CircularDependencyError();
-        }
-        this.dependencies.set(dependency, true);
-        dependency.addDependent(this);
-        return dependency.value;
-    }
-
-    private trackDependency = this.innerTrackDependency.bind(this) as TrackValue;
-
-    private finalizeComputing() {
-        this.state = ComputedState.Valid;
-        this.lastComputeAttemptPromise = undefined;
-        this.abortController = undefined;
-        this.prepareComputePromise();
-    }
-
-    public invalidate(dependency?: Dependency<unknown>) {
-        if (dependency) {
-            this.dependencies.set(dependency, false);
-        } else {
-            for (const dep of this.dependencies.keys()) {
-                this.dependencies.set(dep, false);
-            }
-        }
-        if (this.state === ComputedState.Computing) {
-            this.lastComputeAttemptPromise = undefined;     // prevent finalizeComputing if it is in the event loop already
-            Promise.resolve().then(this.compute.bind(this));
-        } else if (this.state === ComputedState.Valid) {
-            this.state = ComputedState.Uncertain;
-            super.invalidate();
-        }
-    }
-
-    public forceInvalidate() {
-        this.invalidate();
-        if (this.state !== ComputedState.Computing) {
-            this.state = ComputedState.Invalid;
-        }
-    }
-
-    public validate(dependency: Dependency<unknown>) {
-        this.dependencies.set(dependency, true);
     }
 
     private validateDependents() {
@@ -176,17 +76,45 @@ export default class Computed<T> extends Tracker<T> implements Dependent, Depend
         }
     }
 
+    public addDependent(dependent: Dependent) {
+        if (this.dependencies.has(dependent as any)) {
+            throw new CircularDependencyError();
+        }
+        this.dependents.add(dependent);
+    }
+
     public removeDependent(dependent: Dependent, promise = Promise.resolve()): void {
-        super.removeDependent(dependent);
+        this.dependents.delete(dependent);
         this.deferrer?.finally(promise);
     }
 
+    public invalidate(dependency?: Dependency<unknown>) {
+        if (this.state === EffectState.Waiting) {
+            this.state = EffectState.Scheduled;
+            for (const dependent of [...this.dependents.keys()]) {
+                dependent.invalidate(this);
+            }
+        }
+
+        super.invalidate(dependency);
+    }
+
+    public forceInvalidate() {
+        if (this.dependencies.size === 0) {
+            this.invalidate();
+        } else {
+            for (const dependency of this.dependencies.keys()) {
+                this.invalidate(dependency);
+            }
+        }
+        if (this.state !== EffectState.Running) {
+            this.state = EffectState.Initial;
+        }
+    }
+
     public reset() {
-        this.clearDependencies(false);
-        this.state = ComputedState.Invalid;
         this._value = undefined;
-        this.lastComputeAttemptPromise = undefined;
-        this.prepareComputePromise();
+        super.dispose();
     }
 
     public dispose() {

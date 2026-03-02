@@ -176,11 +176,12 @@ describe('computed', function () {
         const b = new Computed((value) => {
             return value(a);
         }, (_newValue, oldValue) => oldValue !== undefined);
+        const c = new Computed(value => value(b));
 
-        assert.strictEqual(b.value, 1);
+        assert.strictEqual(c.value, 1);
 
         a.value = 2;
-        assert.strictEqual(b.value, 1);
+        assert.strictEqual(c.value, 1);
     });
 });
 
@@ -231,7 +232,10 @@ describe('async computed', function () {
 
     it('dependency changed while computing', async function () {
         const a = new Ref(5);
-        const b = new Computed(async (value) => value(a) + 5);
+        const b = new Computed(async (value) => {
+            await new Promise(resolve => setTimeout(resolve));
+            return value(a) + 5;
+        });
         b.value;            // trigger compute
         a.value = 8;
         assert.strictEqual(await b.value, 13);
@@ -264,7 +268,7 @@ describe('async computed', function () {
             return value(a) + 2;
         });
         assert.strictEqual(await b.value, 7);
-        b.invalidate();
+        b.forceInvalidate();
         const promise = b.value;
         a.value = 6;
         assert.strictEqual(await promise, 8);
@@ -284,7 +288,7 @@ describe('async computed', function () {
             return sum;
         });
         assert.strictEqual(await c.value, 15);
-        c.invalidate();
+        c.forceInvalidate();
         const promise = c.value;
         await new Promise(resolve => setTimeout(resolve, 60));
         a.value = 10;

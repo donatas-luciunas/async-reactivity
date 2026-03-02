@@ -36,7 +36,7 @@ describe('listener', function () {
         new Watcher(listener, onChange);
 
         assert.strictEqual(onChange.mock.callCount(), 1);
-        assert.deepStrictEqual(onChange.mock.calls[0].arguments, [1]);
+        assert.deepStrictEqual(onChange.mock.calls[0].arguments, [1, undefined]);
 
         await new Promise((resolve) => setTimeout(resolve, 20));
 
