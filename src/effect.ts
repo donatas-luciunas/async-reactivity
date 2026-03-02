@@ -98,9 +98,10 @@ export default class Effect implements Dependent {
             this.dependencies.set(dependency, false);
         }
 
-        if (this.state === EffectState.Running && this.lastRunPromise) {
+        if (this.state === EffectState.Running && this.abortController) {
+            this.abortController.abort();
+            this.abortController = undefined;
             this.lastRunPromise = undefined;
-            this.abortController?.abort();
             Promise.resolve().then(this.run.bind(this));
         } else if (this.state === EffectState.Waiting) {
             this.state = EffectState.Scheduled;
