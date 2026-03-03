@@ -33,7 +33,7 @@ export default class Ref<T> implements Dependency<T> {
     }
 
     public invalidate(): void {
-        for (const dependent of [...this.dependents.keys()]) {
+        for (const dependent of this.dependents) {
             dependent.invalidate(this);
         }
     }

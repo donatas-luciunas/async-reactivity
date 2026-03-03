@@ -2,7 +2,7 @@ import Dependency from "./dependency.js";
 import Dependent from "./dependent.js";
 
 export declare type TrackValue = (<T>(dependency: Dependency<T>) => T) & (<T>(dependency: Dependency<T> | undefined) => T | undefined);
-export declare type EffectFunc = (value: TrackValue, firstRun: boolean, abortSignal: AbortSignal) => void | Promise<void>;
+export declare type EffectFunc = (value: TrackValue, firstRun: boolean, abortSignal: AbortSignal) => unknown | Promise<unknown>;
 
 export enum EffectState {
     Initial,
@@ -11,27 +11,17 @@ export enum EffectState {
     Scheduled,
 };
 
+export const InSyncSymbol = Symbol('inSync');
+
 export default class Effect implements Dependent {
-    private effect: EffectFunc;
     protected state = EffectState.Initial;
     protected dependencies = new Map<Dependency<unknown>, boolean>();   // boolean indicates whether effect is in sync with the dependency
-    private abortController?: AbortController;
-    private runPromise?: Promise<unknown>;
-    private runPromiseResolve?: Function;
-    private lastRunPromise?: Promise<void>;
+    private abortHandler?: { promise: Promise<void>, abort: Function, aborted: boolean, controller: AbortController };
 
-    constructor(_effect: EffectFunc, immediate = true) {
-        this.effect = _effect;
-        this.prepareRunPromise();
-        if (immediate) {
+    constructor(private readonly effect: EffectFunc, private readonly computed = false) {
+        if (!computed) {
             this.run();
         }
-    }
-
-    private prepareRunPromise() {
-        this.runPromise = new Promise((resolve) => {
-            this.runPromiseResolve = resolve;
-        });
     }
 
     private innerTrackDependency(this: Effect, dependency?: Dependency<unknown>) {
@@ -46,7 +36,7 @@ export default class Effect implements Dependent {
     private trackDependency = this.innerTrackDependency.bind(this) as TrackValue;
 
     run() {
-        const firstRun = this.state === EffectState.Initial;
+        let firstRun = this.state === EffectState.Initial;
 
         if (this.state === EffectState.Scheduled) {
             const inSync = [...this.dependencies.entries()].every(([d, inSync]) => {
@@ -57,40 +47,77 @@ export default class Effect implements Dependent {
                 return inSync;
             });
             if (inSync) {
-                this.completeRun();
-                return;
+                this.state = EffectState.Waiting;
+                return InSyncSymbol;
             }
         }
 
         this.state = EffectState.Running;
-        this.clearDependencies(true);
-        this.abortController = new AbortController();
 
-        const result = this.effect(this.trackDependency, firstRun, this.abortController.signal);
-        if (result instanceof Promise) {
-            this.lastRunPromise = result;
-            this.lastRunPromise.finally(() => {
-                if (this.lastRunPromise === result) {
-                    this.completeRun();
+        const getResult = (): unknown | Promise<unknown> => {
+            this.clearDependencies(runPromise);
+            this.abortHandler = (() => {
+                const handler = {
+                    promise: undefined as unknown as Promise<void>,
+                    abort: () => { },
+                    aborted: false,
+                    controller: new AbortController()
+                };
+                handler.promise = new Promise<void>((resolve) => {
+                    handler.abort = () => {
+                        handler.aborted = true;
+                        handler.controller.abort();
+                        resolve();
+                    };
+                });
+                return handler;
+            })();
+
+            const completeRun = (resolve: boolean, result: unknown, err: unknown, async: boolean) => {
+                if (this.abortHandler!.aborted) {
+                    firstRun = false;
+                    if (this.computed || async) {
+                        return getResult();
+                    }
+                    return Promise.resolve().then(() => getResult());
                 }
-            });
-        } else {
-            this.completeRun();
-        }
+
+                this.state = EffectState.Waiting;
+                this.abortHandler = undefined;
+                resolveRunPromise();
+
+                if (resolve) {
+                    return result;
+                } else {
+                    throw err;
+                }
+            };
+
+            try {
+                const resultMaybePromise = this.effect(this.trackDependency, firstRun, this.abortHandler.controller.signal);
+                if (resultMaybePromise instanceof Promise) {
+                    return Promise.race([resultMaybePromise, this.abortHandler!.promise])
+                        .then((result) => completeRun(true, result, undefined, true))
+                        .catch((err) => completeRun(false, undefined, err, true));
+                }
+                return completeRun(true, resultMaybePromise, undefined, false);
+            } catch (err) {
+                return completeRun(false, undefined, err, false);
+            }
+        };
+
+        let resolveRunPromise: Function;
+        const runPromise = new Promise<void>(resolve => {
+            resolveRunPromise = resolve;
+        });
+        return getResult();
     }
 
-    private clearDependencies(running: boolean) {
+    private clearDependencies(promise?: Promise<void>) {
         for (const dependency of this.dependencies.keys()) {
-            dependency.removeDependent(this, running ? this.runPromise : undefined);
+            dependency.removeDependent(this, promise);
         }
         this.dependencies.clear();
-    }
-
-    private completeRun() {
-        this.runPromiseResolve!();
-        this.state = EffectState.Waiting;
-        this.abortController = undefined;
-        this.prepareRunPromise();
     }
 
     invalidate(dependency?: Dependency<unknown>) {
@@ -98,11 +125,8 @@ export default class Effect implements Dependent {
             this.dependencies.set(dependency, false);
         }
 
-        if (this.state === EffectState.Running && this.abortController) {
-            this.abortController.abort();
-            this.abortController = undefined;
-            this.lastRunPromise = undefined;
-            Promise.resolve().then(this.run.bind(this));
+        if (this.state === EffectState.Running && !this.abortHandler?.aborted) {
+            this.abortHandler?.abort();
         } else if (this.state === EffectState.Waiting) {
             this.state = EffectState.Scheduled;
             Promise.resolve().then(this.run.bind(this));
@@ -114,12 +138,10 @@ export default class Effect implements Dependent {
     }
 
     dispose() {
-        this.clearDependencies(false);
+        this.clearDependencies();
 
-        this.abortController?.abort();
-        this.abortController = undefined;
-
-        this.lastRunPromise = undefined;
+        this.abortHandler?.abort();
+        this.abortHandler = undefined;
 
         this.state = EffectState.Initial;
     }

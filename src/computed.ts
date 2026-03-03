@@ -3,7 +3,7 @@ import Dependent from "./dependent.js";
 import defaultIsEqual from "./defaultIsEqual.js";
 import { Deferrer } from "./deferrer.js";
 import { debounce } from 'lodash-es';
-import Effect, { EffectState } from "./effect.js";
+import Effect, { EffectState, InSyncSymbol } from "./effect.js";
 
 export declare type TrackValue = (<T>(dependency: Dependency<T>) => T) & (<T>(dependency: Dependency<T> | undefined) => T | undefined);
 export declare type ComputeFunc<T> = (value: TrackValue, previousValue: T | undefined, abortSignal: AbortSignal) => T;
@@ -19,32 +19,10 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
     private deferrer?: Deferrer;
 
     constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>, timeToLive?: number) {
-        let computePromiseActions: { resolve: Function, reject: Function } | undefined = undefined;
-        const completeAction = (action: 'resolve' | 'reject', promise: Promise<unknown>, value: T | Error) => {
-            if (promise === lastComputePromise) {
-                computePromiseActions![action](value);
-                computePromiseActions = undefined;
-            }
-        };
 
-        let lastComputePromise: T | undefined = undefined;
         super(((value, _firstRun, abortSignal) => {
-            const newValue = getter(value, this._value, abortSignal);
-            if (newValue instanceof Promise) {
-                if (!computePromiseActions) {
-                    this._value = new Promise((resolve, reject) => {
-                        computePromiseActions = { reject, resolve };
-                    }) as T;
-                }
-                lastComputePromise = newValue;
-                newValue
-                    .then(v => completeAction('resolve', newValue, v))
-                    .catch(err => completeAction('reject', newValue, err));
-                return newValue;
-            } else {
-                this._value = newValue;
-            }
-        }), false);
+            return getter(value, this._value, abortSignal);
+        }), true);
 
         this.getter = getter;
         this.isEqual = isEqual;
@@ -61,9 +39,12 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
     public get value(): T {
         if (this.state === EffectState.Initial || this.state === EffectState.Scheduled) {
             const oldValue = this._value!;
-            this.run();
-            if (this.isEqual(this._value!, oldValue)) {
-                this.validateDependents();
+            const newValue = this.run() as T;
+            if (newValue !== InSyncSymbol) {
+                this._value = newValue;
+                if (this.isEqual(this._value!, oldValue)) {
+                    this.validateDependents();
+                }
             }
         }
 
@@ -91,7 +72,7 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
     public invalidate(dependency?: Dependency<unknown>) {
         if (this.state === EffectState.Waiting) {
             this.state = EffectState.Scheduled;
-            for (const dependent of [...this.dependents.keys()]) {
+            for (const dependent of this.dependents) {
                 dependent.invalidate(this);
             }
         }

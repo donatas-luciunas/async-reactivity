@@ -109,9 +109,41 @@ describe('effect', function () {
 
             assert.strictEqual(count, 1);
         });
+
+        it('should debounce and rerun effect if dependency changes while running', async function () {
+            let count = 0;
+            const a = new Ref(5);
+            
+            new Effect((value) => {
+                value(a);
+                count++;
+                a.value = 6;
+            });
+
+            assert.strictEqual(count, 1);
+
+            await new Promise(resolve => setTimeout(resolve));
+            assert.strictEqual(count, 2);
+        });
     });
 
     describe('async', function () {
+        it('should await effect', async function () {
+            const e = new Effect(async () => {
+                await new Promise(resolve => setTimeout(resolve, 10));
+            });
+            // @ts-expect-error
+            assert.strictEqual(e.state, 1);
+
+            await new Promise(resolve => setTimeout(resolve, 20));
+            // @ts-expect-error
+            assert.strictEqual(e.state, 2);
+
+            await e.run();
+            // @ts-expect-error
+            assert.strictEqual(e.state, 2);
+        });
+
         it('should respect async dependencies', async function () {
             let count = 0;
             const a = new Ref(5);
