@@ -35,8 +35,8 @@ To integrate state with reactive state you can use:
   * `start` function is called when listener gets first dependent
     * it ensures value is updated
   * `stop` function is called when listener loses last dependent
-* [watcher](./src/watcher.ts)
-  * a function that is called when dependency changes
+* [watcher](./src/watcher.ts) and [effect](./src/effect.ts)
+  * a function that is called when dependency changes (Vue.js `watch` and `watchEffect` equivalent)
   * can only be dependent (only outgoing arrows)
 
 # Behavior
