@@ -14,11 +14,16 @@ describe('ref', function () {
         assert.strictEqual(a.value, 4);
     });
 
-    it('setter isEqual', function () {
+    it('should not invalidate when isEqual returns true', function () {
         const a = new Ref(5, () => true);
         new Watcher(a, () => {
             assert.fail();
         }, false);
+        a.value = 4;
+    });
+
+    it('should not call isEqual when there are no dependents', function () {
+        const a = new Ref(5, () => assert.fail());
         a.value = 4;
     });
 });

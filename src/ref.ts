@@ -7,15 +7,15 @@ export default class Ref<T> implements Dependency<T> {
     protected dependents = new Set<Dependent>();
     protected _value?: T;
 
-    constructor(_value: T, isEqual = defaultIsEqual<T>) {
-        this._value = _value;
+    constructor(value: T, isEqual = defaultIsEqual<T>) {
+        this._value = value;
         this.isEqual = isEqual;
     }
 
-    public set value(_value: T) {
+    public set value(value: T) {
         const oldValue = this._value!;
-        this._value = _value;
-        if (!this.isEqual(_value, oldValue)) {
+        this._value = value;
+        if (this.dependents.size > 0 && !this.isEqual(value, oldValue)) {
             this.invalidate();
         }
     }
