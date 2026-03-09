@@ -179,15 +179,21 @@ describe('computed', function () {
 
         it('isEqual', function () {
             const a = new Ref(1);
-            const b = new Computed((value) => {
-                return value(a);
-            }, (_newValue, oldValue) => oldValue !== undefined);
+            let isEqual = false;
+            const b = new Computed((value) => value(a), () => isEqual);
             const c = new Computed(value => value(b));
 
             assert.strictEqual(c.value, 1);
-
+            isEqual = true;
             a.value = 2;
+
             assert.strictEqual(c.value, 1);
+        });
+
+        it('should not call isEqual when there are no dependents (optimization)', function () {
+            const a = new Computed(() => 5, () => assert.fail());
+
+            assert.strictEqual(a.value, 5);
         });
     });
 

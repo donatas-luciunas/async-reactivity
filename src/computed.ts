@@ -42,7 +42,7 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
             const newValue = this.run() as T;
             if (newValue !== InSyncSymbol) {
                 this._value = newValue;
-                if (this.isEqual(this._value!, oldValue)) {
+                if (this.dependents.size > 0 && this.isEqual(this._value!, oldValue)) {
                     this.validateDependents();
                 }
             }
@@ -52,7 +52,7 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
     }
 
     private validateDependents() {
-        for (const dependent of this.dependents.keys()) {
+        for (const dependent of this.dependents) {
             dependent.validate(this);
         }
     }

@@ -22,7 +22,7 @@ describe('ref', function () {
         a.value = 4;
     });
 
-    it('should not call isEqual when there are no dependents', function () {
+    it('should not call isEqual when there are no dependents (optimization)', function () {
         const a = new Ref(5, () => assert.fail());
         a.value = 4;
     });
