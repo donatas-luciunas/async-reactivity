@@ -1,7 +1,7 @@
 import Dependency from "./dependency.js";
 import Effect from "./effect.js";
 
-type onChangeFunc<T> = (newValue: T, oldValue?: T) => void;
+type onChangeFunc<T> = (newValue: T, oldValue?: T) => void | Promise<void>;
 
 export default class Watcher<T> extends Effect {
     constructor(dependency: Dependency<T>, onChange: onChangeFunc<T>, immediate: boolean = true) {
