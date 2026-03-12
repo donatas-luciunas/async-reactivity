@@ -37,24 +37,54 @@ export default class Effect implements Dependent {
 
     run() {
         let firstRun = this.state === EffectState.Initial;
-
-        if (this.state === EffectState.Scheduled) {
-            const inSync = [...this.dependencies.entries()].every(([d, inSync]) => {
-                if (!inSync) {
-                    d.value;
-                    return this.dependencies.get(d);
-                }
-                return inSync;
-            });
-            if (inSync) {
-                this.state = EffectState.Waiting;
-                return InSyncSymbol;
-            }
-        }
+        let checkInSync = this.state === EffectState.Scheduled;
 
         this.state = EffectState.Running;
 
         const getResult = (): unknown | Promise<unknown> => {
+            if (checkInSync) {
+                const dependenciesInSync = (iterator = this.dependencies.entries()): boolean | Promise<boolean> => {
+                    const next = iterator.next();
+                    if (next.done) {
+                        return true;
+                    }
+
+                    const [d, inSync] = next.value;
+
+                    const completeCheck = () => {
+                        if (!this.dependencies.get(d)) {
+                            return false;
+                        }
+                        return dependenciesInSync(iterator);
+                    };
+
+                    if (!inSync) {
+                        const result = d.value;
+                        if (result instanceof Promise) {
+                            return result.then(completeCheck);
+                        }
+                    }
+
+                    return completeCheck();
+                };
+
+                const resultMaybePromise = dependenciesInSync();
+                if (resultMaybePromise instanceof Promise) {
+                    return resultMaybePromise.then(result => {
+                        if (result) {
+                            this.state = EffectState.Waiting;
+                            return InSyncSymbol;
+                        } else {
+                            checkInSync = false;
+                            return getResult();
+                        }
+                    });
+                } else if (resultMaybePromise) {
+                    this.state = EffectState.Waiting;
+                    return InSyncSymbol;
+                }
+            }
+
             this.clearDependencies(runPromise);
             this.abortHandler = (() => {
                 const handler = {
@@ -76,6 +106,7 @@ export default class Effect implements Dependent {
             const completeRun = (resolve: boolean, result: unknown, err: unknown, async: boolean) => {
                 if (this.abortHandler!.aborted) {
                     firstRun = false;
+                    checkInSync = false;
                     if (this.computed || async) {
                         return getResult();
                     }

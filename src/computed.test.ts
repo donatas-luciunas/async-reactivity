@@ -137,6 +137,26 @@ describe('computed', function () {
             assert.strictEqual(gate, 1);
         });
 
+        it('ignore in sync dependencies', function() {
+            let gate = 0;
+            const a = new Ref(5);
+            const b = new Computed((value) => {
+                return value(a) % 2 + 5;
+            });
+            const c = new Computed((value) => value(b));
+            const d = new Computed((value) => {
+                gate++;
+                return value(c);
+            });
+
+            assert.strictEqual(d.value, 6);
+            assert.strictEqual(gate, 1);
+
+            a.value = 7;
+            assert.strictEqual(d.value, 6);
+            assert.strictEqual(gate, 1);
+        });
+
         it('compute when forced', function () {
             let gate = 0;
             const a = new Ref(5);
@@ -348,6 +368,46 @@ describe('computed', function () {
             await new Promise(resolve => setTimeout(resolve, 5));
             b.forceInvalidate();
             assert.strictEqual(await v, 5);
+            assert.strictEqual(gate, 1);
+        });
+
+        it('ignore same computed values', async function () {
+            let gate = 0;
+            const a = new Ref(5);
+            const b1 = new Computed(async (value) => {
+                return value(a) % 2;
+            });
+            const b2 = new Computed(async () => 5);
+            const c = new Computed(async (value) => {
+                gate++;
+                return await value(b1) + await value(b2);
+            });
+
+            assert.strictEqual(await c.value, 6);
+            assert.strictEqual(gate, 1);
+
+            a.value = 7;
+            assert.strictEqual(await c.value, 6);
+            assert.strictEqual(gate, 1);
+        });
+
+        it('ignore in sync dependencies', async function() {
+            let gate = 0;
+            const a = new Ref(5);
+            const b = new Computed(async (value) => {
+                return value(a) % 2 + 5;
+            });
+            const c = new Computed(async (value) => await value(b));
+            const d = new Computed(async (value) => {
+                gate++;
+                return await value(c);
+            });
+
+            assert.strictEqual(await d.value, 6);
+            assert.strictEqual(gate, 1);
+
+            a.value = 7;
+            assert.strictEqual(await d.value, 6);
             assert.strictEqual(gate, 1);
         });
 

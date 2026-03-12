@@ -40,10 +40,27 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
         if (this.state === EffectState.Initial || this.state === EffectState.Scheduled) {
             const oldValue = this._value!;
             const newValue = this.run() as T;
-            if (newValue !== InSyncSymbol) {
-                this._value = newValue;
-                if (this.dependents.size > 0 && this.isEqual(this._value!, oldValue)) {
-                    this.validateDependents();
+            if (newValue === InSyncSymbol) {
+                this.validateDependents();
+            } else {
+                if (newValue instanceof Promise) {
+                    // @ts-expect-error
+                    this._value = Promise.all([newValue, oldValue])
+                        .then(([newValue, oldValue]) => {
+                            if (newValue === InSyncSymbol) {
+                                this.validateDependents();
+                                return oldValue;
+                            }
+                            if (this.dependents.size > 0 && this.isEqual(newValue, oldValue)) {
+                                this.validateDependents();
+                            }
+                            return newValue;
+                        });
+                } else {
+                    this._value = newValue;
+                    if (this.dependents.size > 0 && this.isEqual(newValue, oldValue)) {
+                        this.validateDependents();
+                    }
                 }
             }
         }
