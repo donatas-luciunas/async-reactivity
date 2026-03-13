@@ -12,6 +12,7 @@ export declare type ComputeFuncScoped<T1, T2> = (value: TrackValue, scope: T1, p
 class CircularDependencyError extends Error { }
 
 export default class Computed<T> extends Effect implements Dependent, Dependency<T> {
+    private oldValue?: T;
     private _value?: T;
     getter: ComputeFunc<T>;
     isEqual: typeof defaultIsEqual<T>;
@@ -21,7 +22,7 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
     constructor(getter: ComputeFunc<T>, isEqual = defaultIsEqual<T>, timeToLive?: number) {
 
         super(((value, _firstRun, abortSignal) => {
-            return getter(value, this._value, abortSignal);
+            return getter(value, this.oldValue, abortSignal);
         }), true);
 
         this.getter = getter;
@@ -38,14 +39,14 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
 
     public get value(): T {
         if (this.state === EffectState.Initial || this.state === EffectState.Scheduled) {
-            const oldValue = this._value!;
+            this.oldValue = this._value!;
             const newValue = this.run() as T;
             if (newValue === InSyncSymbol) {
                 this.validateDependents();
             } else {
                 if (newValue instanceof Promise) {
                     // @ts-expect-error
-                    this._value = Promise.all([newValue, oldValue])
+                    this._value = Promise.all([newValue, this.oldValue])
                         .then(([newValue, oldValue]) => {
                             if (newValue === InSyncSymbol) {
                                 this.validateDependents();
@@ -58,7 +59,7 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
                         });
                 } else {
                     this._value = newValue;
-                    if (this.dependents.size > 0 && this.isEqual(newValue, oldValue)) {
+                    if (this.dependents.size > 0 && this.isEqual(newValue, this.oldValue)) {
                         this.validateDependents();
                     }
                 }
