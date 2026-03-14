@@ -41,28 +41,33 @@ export default class Computed<T> extends Effect implements Dependent, Dependency
         if (this.state === EffectState.Initial || this.state === EffectState.Scheduled) {
             this.oldValue = this._value!;
             const newValue = this.run() as T;
-            if (newValue === InSyncSymbol) {
-                this.validateDependents();
+            if (newValue instanceof Promise) {
+                // @ts-expect-error
+                this._value = Promise.all([newValue, this.oldValue])
+                    .then(([newValue, oldValue]) => {
+                        if (newValue === InSyncSymbol) {
+                            this.validateDependents();
+                            return oldValue;
+                        }
+                        if (this.dependents.size > 0 && this.isEqual(newValue, oldValue)) {
+                            this.validateDependents();
+                        }
+                        return newValue;
+                    }).finally(() => {
+                        if (this.state === EffectState.Waiting) {
+                            this.oldValue = undefined;
+                        }
+                    });
             } else {
-                if (newValue instanceof Promise) {
-                    // @ts-expect-error
-                    this._value = Promise.all([newValue, this.oldValue])
-                        .then(([newValue, oldValue]) => {
-                            if (newValue === InSyncSymbol) {
-                                this.validateDependents();
-                                return oldValue;
-                            }
-                            if (this.dependents.size > 0 && this.isEqual(newValue, oldValue)) {
-                                this.validateDependents();
-                            }
-                            return newValue;
-                        });
+                if (newValue === InSyncSymbol) {
+                    this.validateDependents();
                 } else {
                     this._value = newValue;
                     if (this.dependents.size > 0 && this.isEqual(newValue, this.oldValue)) {
                         this.validateDependents();
                     }
                 }
+                this.oldValue = undefined;
             }
         }
 
