@@ -83,6 +83,20 @@ describe('computed', function () {
             assert.throws(() => a.value);
         });
 
+        it('recompute after error', function () {
+            const a = new Ref(5);
+            const b = new Computed((value) => {
+                if (value(a) === 5) {
+                    throw new Error();
+                }
+                return value(a);
+            });
+
+            assert.throws(() => b.value);
+            a.value = 6;
+            assert.strictEqual(b.value, 6);
+        });
+
         it('ignore same ref value', function () {
             let gate = 0;
             const a = new Ref(5);
@@ -137,7 +151,7 @@ describe('computed', function () {
             assert.strictEqual(gate, 1);
         });
 
-        it('ignore in sync dependencies', function() {
+        it('ignore in sync dependencies', function () {
             let gate = 0;
             const a = new Ref(5);
             const b = new Computed((value) => {
@@ -246,6 +260,23 @@ describe('computed', function () {
 
             a.value;
             assert.strictEqual(await a.value, 5);
+        });
+
+        it('recompute after error', async function () {
+            const a = new Ref(5);
+            const b = new Computed(async (value) => {
+                if (value(a) === 5) {
+                    throw new Error();
+                }
+                return value(a);
+            });
+
+            try {
+                await b.value;
+            } catch { }
+            a.value = 6;
+            console.log('invalidate');
+            assert.strictEqual(await b.value, 6);
         });
 
         it('detect circular dependency', async function () {
@@ -391,7 +422,7 @@ describe('computed', function () {
             assert.strictEqual(gate, 1);
         });
 
-        it('ignore in sync dependencies', async function() {
+        it('ignore in sync dependencies', async function () {
             let gate = 0;
             const a = new Ref(5);
             const b = new Computed(async (value) => {
